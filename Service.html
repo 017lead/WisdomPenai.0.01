@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Page Title</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #0c0c0c;
+            width: 100%;
+        }
+
+        * {
+            padding: 0;
+            margin: 0;
+        }
+
+
+
+        header {
+            display: flex;
+            max-height: 200px;
+            text-align: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+            background-color: #171718;
+            color: #f1e8e8;
+            
+            
+        }
+    
+        li {
+            display: inline-block;
+            margin-right: 30px;
+            margin-left: 20px ;
+        }
+    
+        ul {
+            text-align: center;
+            margin-bottom: 10px;
+            padding-bottom: 20px;
+            padding-top: 30px;
+        }
+    
+        li a {
+            text-decoration: none;
+            color: #c2bcbc;
+            width: 50px;
+            height: 40px;
+            border-radius: 8px;
+            
+        }
+    
+        li a:hover {
+            text-decoration: none;
+            color: #fff7f7;
+        }
+    
+        header img {
+            position: absolute;
+        top: 1px; /* Adjust the top value to move the image down */
+        left: 50%; /* Adjust the left value if needed */
+        transform: translateX(-50%);
+        width: 70px;
+        }
+        header img:hover{
+            background-color: #464648;
+            border-radius: 70px;
+            margin-bottom: 9px;
+        }
+
+        section {
+            min-width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            max-height: 100%;
+            align-items: center;
+            justify-content: center;
+            margin: 10px;
+        }
+
+        section .continer {
+            margin-top: 20px;
+            margin: 20px;
+            padding: 13px;
+        width: 330px;
+            box-shadow: 0px 0px 3px black;
+            color: #f7f0f0;
+            text-align: center;
+            background-color: #232121;
+        }
+        section .continer:hover{
+            background-color: #333;
+        }
+        .car {
+            margin-top: 20px;
+        }
+
+        .car2,
+        .car3 {
+            box-shadow: 0px 0px 3px black;
+            margin-top: 20px;
+            background-color: #282626;
+            color: white;
+        }
+
+        .text {
+            margin-bottom: 10px;
+            margin-top: 10px;
+            /* text-wrap: balance; This property is not standard in CSS. */
+        }
+
+        .text img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 10px;
+            max-height: 200px;
+            cursor: pointer;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+        }
+
+        @media (max-width: 800px) {
+            section .continer {
+                margin-left: 10px;
+                width: calc(50% - 20px);
+                margin-bottom: 30px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            section .continer {
+                margin-left: 10px;
+                text-align: center;
+                justify-content: center;
+                width: calc(50% - 20px);
+            }
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+
+    <header>   
+        <ul>
+            <li><a href="Chat.html">WisdomPen Ai</a></li>
+            <li ><a href="index.html"><img src="Logo.png" alt="Home"></a></li>
+            <li><a href="Service.html">Blogs/Updates</a></li>
+        </ul>
+    </header>
+
+    <main>
+        <section>
+            <div class="continer">
+                <div class="car">
+                    <div class="text">
+                        <h1>Release Of WisdomPen 0.0.1</h1>
+                        <a href="Newpagew.html">
+                            <img src="Logo.png" alt="">
+                        </a>
+                    </div>
+                    <p>Get All The Latest on What's New.</p>
+                </div>
+            </div>
+
+            <div class="continer car2">
+                <div class="text">
+                    <h1>Coming Soon</h1>
+                    <img src="qustion.png" alt="">
+                </div>
+                <p>Get All The Latest on What's New.</p>
+            </div>
+
+            <div class="continer car3">
+                <div class="text">
+                    <h1>Coming Soon</h1>
+                    <img src="qustion.png" alt="">
+                </div>
+                <p>Get All The Latest on What's New.</p>
+            </div>
+            
+        </section>
+    </main>
+</body>
+</html>

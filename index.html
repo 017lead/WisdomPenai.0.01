@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://kit.fontawesome.com/d3c45e919b.js" crossorigin="anonymous"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@1,500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/ico" href="favicon2.ico">
+    <title>WisdomPen.com</title>
+    <style>
+        * {
+            padding: 0px;
+            margin: 0px;
+            box-sizing: border-box;
+        }
+
+        html {
+            height: 100%;
+            width: 100%;
+            scroll-behavior: smooth;
+            scroll-snap-type: y ;
+        }
+
+       
+
+        body {
+overflow: auto;
+            font-family: 'Roboto' , sans-serif;
+            margin: 0;
+            background-color: #e7e2e2d7;
+            padding: 0;
+           
+            height: 100%;
+            width: 100%;
+            
+        }
+
+        
+
+        header {
+            display: flex;
+            max-height: 200px;
+            text-align: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+            background-color: #171718;
+            color: #f1e8e8;
+            
+            
+        }
+    
+        li {
+            display: inline-block;
+            margin-right: 30px;
+            margin-left: 20px ;
+        }
+    
+        ul {
+            text-align: center;
+            margin-bottom: 10px;
+            padding-bottom: 20px;
+            padding-top: 30px;
+        }
+    
+        li a {
+            text-decoration: none;
+        color: #c2bcbc;
+        width: 50px;
+        height: 40px;
+        border-radius: 8px;
+        }
+    
+        li a:hover {
+            text-decoration: none;
+            color: #fff7f7;
+        }
+    
+        header img {
+            position: absolute;
+        top: 1px; /* Adjust the top value to move the image down */
+        left: 50%; /* Adjust the left value if needed */
+        transform: translateX(-50%);
+        width: 70px;
+        }
+        header img:hover{
+            background-color: #464648;
+            border-radius: 70px;
+            margin-bottom: 9px;
+        }
+    
+                     body{
+                       overflow: auto;
+                        font-family: 'Roboto' , sans-serif;
+                        margin: 0;
+                        background-color: #e7e2e2d7;
+                        padding: 0;
+                       
+                        height: 100%;
+                        width: 100%;
+                    }
+.reveal{
+    position: relative ;
+   transform: translateY(100px);
+   opacity: 0;
+   transition: all 2s ease;
+}
+.reveal.active{
+    transform: translateY(0px);
+    opacity: 1;
+    
+
+}
+        
+ 
+
+        #page2 {
+           
+            min-height: 670px;
+            width: 100%;
+            
+            margin-top: 10px;
+            background-image: linear-gradient( rgb(225, 219, 219) 20%, rgb(241, 241, 241) );
+            
+            text-align: center;
+           
+        }
+#page2 h2{
+    margin-top: 190px;
+    font-size: 60px;
+    margin-bottom: 30px;
+    text-align: center;
+    color: rgb(0, 0, 0);
+    
+}
+#page2 p{
+   
+    font-size: 30px;
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+
+
+#page2 a {
+    
+    padding: 15px 30px;
+    background-color: #0645bb;
+    color: #fff;
+    border-radius: 10px;
+    
+    text-decoration: none;
+   
+    font-size: 18px;
+}
+.page3 a {
+    
+    padding: 15px 30px;
+    background-color: #0645bb;
+    color: #fff;
+    border-radius: 10px;
+    
+    text-decoration: none;
+   
+    font-size: 18px;
+}
+.page3 a:hover{
+    background-color: #4779d6;
+    
+    
+}
+#page2 a:hover{
+    background-color: #466eb9;
+}
+section{
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+}
+
+        #page1 {
+            min-height: 770px;
+            min-width: 100%;
+            background-image: linear-gradient(white 10%, rgb(225, 219, 219));
+scroll-snap-align: none;
+        }
+
+       #page1 h1{
+        margin-top: 210px;
+       text-align: center;
+        font-size: 70px;
+        text-wrap: balance;
+        
+
+       }
+
+       #page1 p{
+        margin-top: 60px;
+        
+       text-align: center;
+        font-size: 30px;
+        
+        margin-bottom: 40px;
+        
+       }
+       
+       
+        
+       
+
+        .page3 {
+            
+            margin-top: 10px;
+            
+            min-height: 780px;
+            min-width: 100%;
+            text-align: center;
+            background-image: linear-gradient(white 60%, rgb(207, 204, 204));
+        }
+        .page3 h2{
+            margin-top: 247px;
+            margin-bottom: 50px;
+            font-size: 50px;
+        }
+        .stay .reveal{
+            min-height: 700px;
+        }
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .reveal{
+            scroll-snap-type: mandatory;
+        }
+
+        .twitter {
+            display: flex;
+            
+            margin-top: 10px;
+            background-color: #2e2d2d;
+            color: #fff;
+            text-align: center;
+            min-height: 100px;
+        }
+        
+        #Report{
+            text-decoration: none;
+            height: 40px;
+            text-align: center;
+            justify-content: center;
+            margin-top: 20px;
+            margin-left: 9px;
+        }
+        .twitter div{
+            margin-left: 40px;
+            margin-top: 20px;
+text-align: start;
+font-size: 20px;
+
+color: aliceblue;
+
+
+
+
+        }
+        .twitter a {
+
+            text-align: start;
+
+padding: 7px;
+margin-right: 20px;
+border-radius: 10px;
+margin-top: 10px;
+color: #000000;
+background-color: rgb(166, 166, 166);
+        }
+        .twitter a:hover{
+            background-color: #2554ac;
+        }
+        .twitter p{
+            font-size: 12px;
+            margin-bottom: 16px;
+        }
+        .last3{
+            background-color: #2e2d29;
+            
+        }
+        .last3 p{
+            margin-left: 20px;
+        }
+       
+
+        @media (max-width: 800px) {
+            #page1, #page2, .page3 {
+                
+                margin: 10px auto;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 600px) {
+            header, main, footer {
+                
+            }
+          
+
+            .user-input {
+                width: calc(100% - 20px);
+            }
+        }
+    </style>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+
+
+    <header>
+        <ul>
+            <li><a href="#page2">WisdomPen Ai</a></li>
+           <li ><a href="Main.html"><img src="Logo.png" alt="Home"></a></li>
+        <li><a href="#page3">Blogs/Updates</a></li>
+        </ul>
+    </header>
+
+
+<main>
+    <section id="page1">
+        <div class="font12 ">
+            <h1 class="text reveal"> <span style="color: #000000;">Islamic</span>, Simple, Smart, Ai</h1>
+            <p class="font2 reveal" style="color: #2e2d2d;">To answer your questions on <span style="color: #000000;">Islam</span> with accuracy</p>
+        </div>
+    </section>
+
+    <section id="page2">
+        <div class="page4 reveal">
+            
+        <h2 >WisdomPen Ai</h2>
+        <p >To answer your questions on Islam with accuracy</p>
+    
+        
+       
+            <a href="Chat.html" target="_blank" class="submit-button">Start Now</a>
+        
+        
+      </div>
+        </section>
+   
+
+    <section class="page3" id="page3" >
+        <div class="the3 reveal ">
+        <h2 class="text">Blogs/Updates</h2>
+        <h1 style="color: #fff;">Privacy and Service</h1>
+        <a href="Service.html" class="submit-button2">News/info</a>
+        </div>
+        <div class="stay"></div>
+        <script> type="text/javascript">
+window. addEventListener ('scroll', reveal);
+function reveal(){
+
+var reveals = document.querySelectorAll(' .reveal');
+
+for (var i = 0; i < reveals.length; i++){
+var windowheight = window.innerHeight;
+var revealtop = reveals[i].getBoundingClientRect().top;
+var revealpoint = 100;
+
+if (revealtop < windowheight - revealpoint){
+    reveals[i].classList.add('active');
+}
+else{
+    reveals[i].classList.remove('active');
+}
+}
+
+}
+</script>
+    </section>
+</main>
+
+<footer class="twitter">
+<div>
+    <p>Follow for more info</p>
+    <a href="https://youtube.com/@WisdomPenai?si=jsJIH2FMwkS3NIEi">
+        <i class="fa-brands fa-youtube"></i>
+    </a> 
+    <a href="https://x.com/WisdomPenai/status/1751739551230410951?s=20">
+        <i class="fa-brands fa-x-twitter"></i>
+</a>
+</div>
+<a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
+</footer>
+<footer class="last3">
+    <p>&copy; 2024 WisdomPen. All rights reserved.</p>
+</footer>
+<script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</body>
+</html>

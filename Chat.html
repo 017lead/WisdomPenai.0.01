@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Page Title</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #e4e7eb;
+        }
+
+        main, footer {
+            padding: 10px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            
+            padding: 4px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+           
+        }
+        #overlay {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.69);
+            color: #fff;
+            z-index: 1000;
+            visibility: hidden;
+            text-wrap: balance;
+        }
+
+        #overlay-content {
+            text-align: center;
+            text-wrap: balance;
+        }
+
+        #close-btn {
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #000000;
+        }
+
+
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+        }
+        #Report{
+            color: rgb(221, 221, 216);
+            padding-right: 20px;
+            padding-top: 20px;
+            border-radius: 10px;
+        }
+
+        .continar12 {
+            display: flex;
+            justify-content: space-between;
+            text-align: center;
+            padding: 10px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        #suggust{
+            display: flex;
+            text-align: center;
+            
+            margin-top:  10px;
+            
+            
+        }
+        
+        #suggust button{
+            margin-left: 20px;
+            background-color: #8db8ef45;
+            border-radius: 4px;
+            text-align: center;
+            padding: 10px;
+            
+            border: none;
+            cursor: pointer;
+        }
+        #suggust button:hover{
+            
+            background-color: #187ad545;
+            
+            
+            
+            
+        }
+        #suggust h1{
+            font-size: 13px;
+            color: #636161;
+        }
+
+        .chat-container {
+            width: 96%;
+            min-height: 120vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #fafafa;
+            border: 1px solid #e8e5e5ea;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 1px 1px 7px rgba(113, 112, 112, 0.476);
+            margin: 10px;
+        }
+.user-input-container{
+    display: flex;
+    width: 70%;
+    margin-top: 30px;
+}
+        .chat-messages {
+            flex-grow: 1;
+            overflow: auto;
+            border: 1px solid #e8e5e5b5;
+            max-height: 290px;
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        #chat-messages li {
+            margin: 5px;
+            padding: 20px;
+            border-radius: 5px;
+            
+            background-color: #e8e5e5;
+        }
+
+        .user-input {
+            flex: 1;
+            width: calc(100% - 30px);
+            outline: none;
+            font-size: 1.2em;
+            padding: 10px;
+            margin: 16px ;
+            border-radius: 10px;
+            border: 0.1px solid #e2e2e2f0;
+            background: #f0efefd6;
+            transition: 0.1s ease;
+            resize: none;
+           
+            box-sizing: border-box;
+        }
+        header a{
+   
+            font-size: 15px;
+            padding: 5px;
+           
+            
+            
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+            color: green;
+        }
+        header a:hover{
+            background-color: #333;
+        }
+        .send {
+            height: 60%;
+            
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        .send:hover{
+            background-color: #5198e3;
+        }
+
+        @media (max-width: 600px) {
+            header, main, footer {
+                padding: 10px;
+            }
+
+            .user-input {
+                width: calc(100% - 20px);
+            }
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+
+<div id="overlay">
+    <div id="overlay-content">
+        <h2>Important Notice</h2>
+        <p>This Ai is not perfect and may produce wrong, misinformation, or disrespectful response. Please take the information as information with your additional info on Islam..</p>
+        <button id="close-btn" onclick="closeOverlay()">Close</button>
+    </div>
+</div>
+
+    <header style="background-color: #1c1c1c;">
+        <div class="continar12"> 
+            <h1 class="test">  Beta Testing: 0.0.1 </h1>
+            
+            <a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="chat-container">
+            <ul class="chat-messages" id="chat-messages">
+                <!-- Chat messages will be added dynamically using JavaScript -->
+            </ul>
+<div class="user-input-container">
+            <textarea class="user-input" id="user-input" name="user-input" placeholder="Enter your response..."></textarea>
+            <button class="send" id="send" type="button">Send</button>
+            
+            </div>
+            <div id="suggust">
+                <h1>Suggustions:</h1>
+                <button id="Buttons" onclick="findMore()">Zakat in Islam</button>
+                <button id="Buttons" onclick="findMore2()">Fasting Rules</button>
+                <button id="Buttons" onclick="findMore3()">Jihad and Qital</button>
+                <button id="Buttons" onclick="findMore4()"> Proof, Hijab In Islam </button>
+
+
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 WisdomPen. All rights reserved.</p>
+    </footer>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Disable the "Send" button initially
+            $("#send").prop("disabled", true);
+
+            // Function to enable/disable the "Send" button based on user input
+            function toggleSendButton() {
+                const userInput = $("#user-input").val().trim(); // Trim removes leading and trailing whitespaces
+
+                // Enable the button if there is some non-whitespace input, otherwise disable it
+                $("#send").prop("disabled", userInput === '');
+            }
+
+            // Attach the toggleSendButton function to the input event of the user-input textarea
+            $("#user-input").on("input", toggleSendButton);
+
+            // Function to handle sending messages
+            async function handleSend() {
+                const userInput = $("#user-input").val();
+                $("#chat-messages").append(`<li><strong>You:</strong> ${userInput}</li>`);
+                $("#user-input").val('');
+
+                interact({ type: 'text', payload: userInput });
+
+                // Disable the "Send" button after sending the message
+                $("#send").prop("disabled", true);
+            }
+
+            // Attach the handleSend function to the click event of the "Send" button
+            $("#send").on("click", handleSend);
+        });
+
+       
+
+    </script>
+
+    <script>
+        function findMore() {
+            document.getElementById("user-input").value = "What Is Zakat, And It's Importance ";
+        }
+        function findMore2() {
+            document.getElementById("user-input").value = "What Are The Islamic Rules For Fasting";
+        }
+        function findMore3() {
+            document.getElementById("user-input").value = "Diffrence Between Jihad And Qital, n rules";
+        }
+        function findMore4() {
+            document.getElementById("user-input").value = "Proof, Of Hijab In Islam";
+        }
+    </script>
+<script>
+    // Function to close the overlay
+    function closeOverlay() {
+        document.getElementById('overlay').style.visibility = 'hidden';
+        // Set a cookie to remember that the overlay has been shown
+        document.cookie = 'overlayShown=true; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/';
+    }
+
+    // Function to check if the overlay should be shown
+    function shouldShowOverlay() {
+        return document.cookie.indexOf('overlayShown=true') === -1;
+    }
+
+    // Show the overlay when the page loads if not shown before
+    window.onload = function() {
+        if (shouldShowOverlay()) {
+            document.getElementById('overlay').style.visibility = 'visible';
+        }
+    };
+</script>
+
+    <script>
+        const API_KEY = "sk-YjE5ZDYxMzctZDQ2ZS00MThjLThiNGQtZWYyOWEyM2E4ZGRm";
+
+        const interact = (request) =>
+            fetch(`https://general-runtime.voiceflow.com/state/user/${encodeURI($("#name").val())}/interact`, {
+                method: 'POST',
+                headers: { Authorization: API_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ request }),
+            })
+            .then((res) => res.json())
+            .then((trace) => {
+                trace.forEach((trace) => {
+                    if (trace.type === 'speak' || trace.type === 'text') {
+                        $("#chat-messages").append(`<li>${trace.payload.message}</li>`);
+                    } else if (trace.type === 'end') {
+                        $("#chat-messages").append(`<li><b>The End!</b></li>`);
+                    }
+                });
+                $("#chat-messages").scrollTop($("#chat-messages")[0].scrollHeight);
+            });
+
+        
+       
+
+        
+    </script>
+</body>
+</html>
