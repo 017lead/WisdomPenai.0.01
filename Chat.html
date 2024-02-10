@@ -134,17 +134,17 @@
     width: 70%;
     margin-top: 30px;
 }
-        .chat-messages {
-            flex-grow: 1;
-            overflow: auto;
-            border: 1px solid #e8e5e5b5;
-            max-height: 290px;
-            width: 100%;
-            padding: 20px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column-reverse;
-        }
+.chat-messages {
+    flex-grow: 1;
+    overflow: auto;
+    border: 1px solid #e8e5e5b5;
+    max-height: 490px;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column-reverse; /* Reverse the order */
+}
 
         #chat-messages li {
             margin: 5px;
@@ -199,15 +199,19 @@
             background-color: #5198e3;
         }
 
-        @media (max-width: 600px) {
-            header, main, footer {
-                padding: 10px;
-            }
-
-            .user-input {
-                width: calc(100% - 20px);
+        @media (max-width: 800px) {
+            .user-input-container {
+                width: 90%;
             }
         }
+
+        @media (max-width: 600px) {
+            .continar12 {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
     </style>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
@@ -273,14 +277,16 @@
             // Function to handle sending messages
             async function handleSend() {
                 const userInput = $("#user-input").val();
-                $("#chat-messages").append(`<li><strong>You:</strong> ${userInput}</li>`);
+                // Prepend the new message to the beginning of the list
+                $("#chat-messages").prepend(`<li><strong>You:</strong> ${userInput}</li>`);
                 $("#user-input").val('');
-
+            
                 interact({ type: 'text', payload: userInput });
-
+            
                 // Disable the "Send" button after sending the message
                 $("#send").prop("disabled", true);
             }
+            
 
             // Attach the handleSend function to the click event of the "Send" button
             $("#send").on("click", handleSend);

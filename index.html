@@ -20,14 +20,14 @@
             height: 100%;
             width: 100%;
             scroll-behavior: smooth;
-            scroll-snap-type: y ;
+           
         }
 
        
 
         body {
 overflow: auto;
-            font-family: 'Roboto' , sans-serif;
+            font-family:  Arial, Helvetica, sans-serif;
             margin: 0;
             background-color: #e7e2e2d7;
             padding: 0;
@@ -173,10 +173,7 @@ overflow: auto;
 #page2 a:hover{
     background-color: #466eb9;
 }
-section{
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-}
+
 
         #page1 {
             min-height: 770px;
@@ -298,9 +295,12 @@ background-color: rgb(166, 166, 166);
                 width: 100%;
             }
         }
+        
 
-        @media (max-width: 600px) {
-            header, main, footer {
+        @media (max-width: 500px) {
+          
+             #page1, #page2, #page3{
+              font-size: 20px;
                 
             }
           
@@ -319,7 +319,7 @@ background-color: rgb(166, 166, 166);
     <header>
         <ul>
             <li><a href="#page2">WisdomPen Ai</a></li>
-           <li ><a href="index.html"><img src="Logo.png" alt="Home"></a></li>
+           <li ><a href="Main.html"><img src="Logo.png" alt="Home"></a></li>
         <li><a href="#page3">Blogs/Updates</a></li>
         </ul>
     </header>
