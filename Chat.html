@@ -74,6 +74,9 @@
             padding-top: 20px;
             border-radius: 10px;
         }
+        #Report:hover{
+color: #065ec4;
+        }
 
         .continar12 {
             display: flex;
@@ -143,7 +146,7 @@
     padding: 20px;
     box-sizing: border-box;
     display: flex;
-    flex-direction: column-reverse; /* Reverse the order */
+    flex-direction: column; /* Reverse the order */
 }
 
         #chat-messages li {
@@ -180,9 +183,7 @@
             text-decoration: none;
             color: green;
         }
-        header a:hover{
-            background-color: #333;
-        }
+        
         .send {
             height: 60%;
             
@@ -333,7 +334,7 @@
 
     <script>
         const API_KEY = "VF.DM.655ed76cd9faee000774243a.HA1ChEuzvjOhEK6q";
-
+        USER_ID='user_123'
         const interact = (request) =>
             fetch(`https://general-runtime.voiceflow.com/state/user/${encodeURI($("#name").val())}/interact`, {
                 method: 'POST',
