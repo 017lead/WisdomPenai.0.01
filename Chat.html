@@ -1,11 +1,15 @@
-
-   <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Page Title</title>
     <style>
+        * {
+            margin: 0px;
+            padding: 0px;
+            box-sizing: border-box;
+        }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -20,11 +24,12 @@
 
         header {
             display: flex;
-            justify-content: space-between;
-            padding: 4px;
-            background-color: #333;
-            color: #fff;
+            max-height: 200px;
             text-align: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+            background-color: #171718;
+            color: #f1e8e8;
         }
         .chat-messages {
             flex-grow: 1;
@@ -215,7 +220,6 @@
     </script>
 
 
-    <!-- Your scripts here -->
+  
 </body>
 </html>
-        
