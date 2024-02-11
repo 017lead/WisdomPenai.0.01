@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+
+   <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -20,144 +21,23 @@
         header {
             display: flex;
             justify-content: space-between;
-            
             padding: 4px;
             background-color: #333;
             color: #fff;
             text-align: center;
-           
         }
-        #overlay {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.69);
-            color: #fff;
-            z-index: 1000;
-            visibility: hidden;
-            text-wrap: balance;
-        }
-
-        #overlay-content {
-            text-align: center;
-            text-wrap: balance;
-        }
-
-        #close-btn {
-            cursor: pointer;
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            color: #000000;
-        }
-
-
-        main {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        footer {
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-        }
-        #Report{
-            color: rgb(221, 221, 216);
-            padding-right: 20px;
-            padding-top: 20px;
-            border-radius: 10px;
-        }
-        #Report:hover{
-color: #065ec4;
-        }
-
-        .continar12 {
-            display: flex;
-            justify-content: space-between;
-            text-align: center;
-            padding: 10px;
-            width: 100%;
-           
-        }
-        #suggust{
-            display: flex;
-            text-align: center;
-            
-            margin-top:  10px;
-            margin-bottom: 13px;
-            
-            
-        }
-        
-        #suggust button{
-            margin-left: 20px;
-            background-color: #8db8ef45;
-            border-radius: 4px;
-            text-align: center;
-            padding: 10px;
-            
-            border: none;
-            cursor: pointer;
-        }
-        #suggust button:hover{
-            
-            background-color: #187ad545;
-            
-            
-            
-            
-        }
-        #suggust h1{
-            font-size: 13px;
-            color: #636161;
-        }
-
-        .chat-container {
-            min-width: 149vh;
-            min-height: 120vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background-color: #fafafa;
-            border: 1px solid #e8e5e5ea;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 1px 1px 7px rgba(113, 112, 112, 0.476);
-            margin: 10px;
-        }
-.user-input-container{
-    display: flex;
-    min-width: 70%;
-    margin-top: 30px;
-}
-.chat-messages {
-    flex-grow: 1;
-    overflow: auto;
-    border: 1px solid #e8e5e5b5;
-    min-height: 70%;
-    min-width: 100%;
-    padding: 20px;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column; /* Reverse the order */
-}
-
-        #chat-messages li {
-            margin: 5px;
+        .chat-messages {
+            flex-grow: 1;
+            overflow: auto;
+            border: 1px solid #e8e5e5b5;
+            min-height: 70%;
+            min-width: 100%;
             padding: 20px;
-            border-radius: 5px;
-            
-            background-color: #e8e5e5;
+            box-sizing: border-box;
+            display: flex;
+            text-align: center;
+            flex-direction: column; /* Reverse the order */
         }
-
         .user-input {
             flex: 1;
             min-width: 300px;
@@ -173,98 +53,61 @@ color: #065ec4;
            
             box-sizing: border-box;
         }
-        header a{
-   
-            font-size: 15px;
-            padding: 5px;
-           
-            
-            
-            transition: background-color 0.3s ease;
-            text-decoration: none;
-            color: green;
-        }
+        .chat-container {
         
-        .send {
-            
-            
-            height: 35px;
-            width: 45px;
-            background-color: #007bff;
-            color: #fff;
-            text-align: center;
-            border: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 400px;
+            min-height: 600px;
+            background-color: #fafafa;
+            border: 1px solid #e8e5e5ea;
             border-radius: 10px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            box-sizing: border-box;
+            overflow: hidden;
+            box-shadow: 1px 1px 7px rgba(113, 112, 112, 0.476);
+            margin: 10px;
         }
-        .send:hover{
-            background-color: #5198e3;
+        .user-input-container{
+            display: flex;
+            min-width: 70%;
+            margin-top: 30px;
         }
-
-        @media (max-width: 800px) {
-            .user-input-container {
-                min-height: 90%;
-            }
-        }
-
-        @media (max-width: 400px) {
-            .chat-container{
-                min-width: 90vh;
-            min-height: 120vh;
-                
-            }
-            .user-input{
-                min-width: 480px;
-                
-            }
-           #suggust{
-            margin-left: 10px;
-            margin-right: 10px;
-           }
+        main{
+            align-items: center;
+            text-align: center;
+            justify-content: center;
         }
 
+        /* Responsive styles */
+      
     </style>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 <body>
-
-<div id="overlay">
-    <div id="overlay-content">
-        <h2>Important Notice</h2>
-        <p>This Ai is not perfect and may produce wrong, misinformation, or disrespectful response. Please take the information as information with your additional info on Islam..</p>
-        <button id="close-btn" onclick="closeOverlay()">Close</button>
-    </div>
-</div>
-
-    <header style="background-color: #1c1c1c;">
-        <div class="continar12"> 
-            <h1 class="test">  Beta Testing: 0.0.1 </h1>
-            
-            <a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
-        </div>
+    <!-- Your HTML content here -->
+    <header>
+        <h1 class="test">Beta Testing: 0.0.1</h1>
+        <a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
     </header>
 
     <main>
-        <section class="chat-container">
-            <ul class="chat-messages" id="chat-messages">
-                <!-- Chat messages will be added dynamically using JavaScript -->
-            </ul>
-<div class="user-input-container">
-            <textarea class="user-input" id="user-input" name="user-input" placeholder="Enter your response..."></textarea>
-            <button class="send" id="send" type="button">Send</button>
-            
-            </div>
-            <div id="suggust">
-                <h1>Suggustions:</h1>
-                <button id="Buttons" onclick="findMore()">Zakat in Islam</button>
-                <button id="Buttons" onclick="findMore2()">Fasting Rules</button>
-                <button id="Buttons" onclick="findMore3()">Jihad and Qital</button>
-                <button id="Buttons" onclick="findMore4()"> Proof, Hijab In Islam </button>
-
-
-            </div>
+       <section>
+           
+                <section class="chat-container">
+                    <ul class="chat-messages" id="chat-messages">
+                        <!-- Chat messages will be added dynamically using JavaScript -->
+                    </ul>
+                    <div class="user-input-container">
+                        <textarea class="user-input" id="user-input" name="user-input" placeholder="Enter your response..."></textarea>
+                        <button class="send" id="send" type="button">Send</button>
+                        </div>
+        <div id="suggust">
+            <h1>Suggestions:</h1>
+            <button id="Buttons" onclick="findMore()">Zakat in Islam</button>
+            <button id="Buttons" onclick="findMore2()">Fasting Rules</button>
+            <button id="Buttons" onclick="findMore3()">Jihad and Qital</button>
+            <button id="Buttons" onclick="findMore4()">Proof, Hijab In Islam</button>
+        </div>
         </section>
     </main>
 
@@ -370,5 +213,9 @@ color: #065ec4;
 
         
     </script>
+
+
+    <!-- Your scripts here -->
 </body>
 </html>
+        
