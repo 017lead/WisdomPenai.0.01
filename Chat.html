@@ -12,14 +12,7 @@
         }
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
             background-color: #e4e7eb;
-        }
-
-        main, footer {
-            padding: 10px;
         }
 
         header {
@@ -38,14 +31,14 @@
             border-radius: 10px;
         }
         #Report:hover{
-color: #065ec4;
+            color: #065ec4;
         }
         .chat-messages {
             flex-grow: 1;
             overflow: auto;
-            border: 1px solid #e8e5e5b5;
+            border: 1px solid #eeeaeab5;
             min-height: 70%;
-            min-width: 100%;
+            min-width: 90%;
             padding: 20px;
             box-sizing: border-box;
             display: flex;
@@ -57,12 +50,9 @@ color: #065ec4;
             margin: 5px;
             padding: 20px;
             border-radius: 5px;
-            
             background-color: #e8e5e5;
         }
         .send {
-            
-            
             height: 35px;
             width: 45px;
             background-color: #007bff;
@@ -70,6 +60,7 @@ color: #065ec4;
             text-align: center;
             border: none;
             border-radius: 10px;
+            margin-right: 10px;
             cursor: pointer;
             transition: background-color 0.3s ease;
             box-sizing: border-box;
@@ -79,74 +70,60 @@ color: #065ec4;
         }
         .user-input {
             flex: 1;
-            min-width: 300px;
+            min-width: 0;
             outline: none;
             font-size: 1.2em;
             padding: 10px;
-            margin: 4px ;
+            margin: 9px ;
             border-radius: 10px;
             border: 0.1px solid #e2e2e2f0;
             background: #f0efefd6;
             transition: 0.1s ease;
             resize: none;
-           
             box-sizing: border-box;
         }
         .chat-container {
-        
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-width: 400px;
-            min-height: 600px;
+            min-height: 100vh;
             background-color: #fafafa;
             border: 1px solid #e8e5e5ea;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 1px 1px 7px rgba(113, 112, 112, 0.476);
             margin: 10px;
+            padding: 10px;
+            width: calc(100% - 20px);
         }
         #suggust{
             display: flex;
             text-align: center;
-            
-            margin-top:  10px;
+            margin-top: 10px;
             margin-bottom: 13px;
-            
-            
         }
-        
         #suggust button{
             margin-left: 20px;
             background-color: #8db8ef45;
             border-radius: 4px;
             text-align: center;
             padding: 10px;
-            
             border: none;
             cursor: pointer;
         }
         #suggust button:hover{
-            
             background-color: #187ad545;
-            
-            
-            
-            
-        }
-        #suggust h1{
-            font-size: 13px;
-            color: #636161;
         }
         footer {
             background-color: #333;
             color: #fff;
             text-align: center;
+            padding: 10px;
         }
         .user-input-container{
             display: flex;
-            min-width: 70%;
+            width: calc(100% - 20px);
             margin-top: 30px;
         }
         main{
@@ -154,7 +131,6 @@ color: #065ec4;
             text-align: center;
             justify-content: center;
             margin-right: 10px;
-            
         }
 
         /* Responsive styles */
@@ -162,7 +138,6 @@ color: #065ec4;
     </style>
 </head>
 <body>
-    <!-- Your HTML content here -->
     <header>
         <h1 class="test">Beta Testing: 0.0.1</h1>
         <a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
@@ -170,105 +145,78 @@ color: #065ec4;
 
     <main>
        <section>
-           
-                <section class="chat-container">
-                    <ul class="chat-messages" id="chat-messages">
-                        <!-- Chat messages will be added dynamically using JavaScript -->
-                    </ul>
-                    <div class="user-input-container">
-                        <textarea class="user-input" id="user-input" name="user-input" placeholder="Enter your response..."></textarea>
-                        <button class="send" id="send" type="button">Send</button>
-                        </div>
-        <div id="suggust">
-            <h1>Suggestions:</h1>
-            <button id="Buttons" onclick="findMore()">Zakat in Islam</button>
-            <button id="Buttons" onclick="findMore2()">Fasting Rules</button>
-            <button id="Buttons" onclick="findMore3()">Jihad and Qital</button>
-            <button id="Buttons" onclick="findMore4()">Proof, Hijab In Islam</button>
-        </div>
-        </section>
+           <section class="chat-container">
+               <ul class="chat-messages" id="chat-messages">
+                   <!-- Chat messages will be added dynamically using JavaScript -->
+               </ul>
+               <div class="user-input-container">
+                   <textarea class="user-input" id="user-input" name="user-input" placeholder="Enter your response..."></textarea>
+                   <button class="send" id="send" type="button">Send</button>
+               </div>
+               <div id="suggust">
+                   <h1>Suggestions:</h1>
+                   <button id="Buttons" onclick="findMore()">Zakat in Islam</button>
+                   <button id="Buttons" onclick="findMore2()">Fasting Rules</button>
+                   <button id="Buttons" onclick="findMore3()">Jihad and Qital</button>
+                   <button id="Buttons" onclick="findMore4()">Proof, Hijab In Islam</button>
+               </div>
+           </section>
+       </section>
     </main>
-<section>
+
     <footer>
         <p>&copy; 2024 WisdomPen. All rights reserved.</p>
     </footer>
-    </section>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             // Disable the "Send" button initially
-            $("#send").prop("disabled", true);
+            document.getElementById("send").disabled = true;
 
             // Function to enable/disable the "Send" button based on user input
             function toggleSendButton() {
-                const userInput = $("#user-input").val().trim(); // Trim removes leading and trailing whitespaces
+                const userInput = document.getElementById("user-input").value.trim();
 
                 // Enable the button if there is some non-whitespace input, otherwise disable it
-                $("#send").prop("disabled", userInput === '');
+                document.getElementById("send").disabled = userInput === '';
             }
 
             // Attach the toggleSendButton function to the input event of the user-input textarea
-            $("#user-input").on("input", toggleSendButton);
+            document.getElementById("user-input").addEventListener("input", toggleSendButton);
 
             // Function to handle sending messages
-            async function handleSend() {
-                const userInput = $("#user-input").val();
+            function handleSend() {
+                const userInput = document.getElementById("user-input").value;
                 // Prepend the new message to the beginning of the list
-                $("#chat-messages").prepend(`<li><strong>You:</strong> ${userInput}</li>`);
-                $("#user-input").val('');
-            
+                document.getElementById("chat-messages").innerHTML = `<li><strong>You:</strong> ${userInput}</li>` + document.getElementById("chat-messages").innerHTML;
+                document.getElementById("user-input").value = '';
+
                 interact({ type: 'text', payload: userInput });
-            
+
                 // Disable the "Send" button after sending the message
-                $("#send").prop("disabled", true);
+                document.getElementById("send").disabled = true;
             }
-            
 
             // Attach the handleSend function to the click event of the "Send" button
-            $("#send").on("click", handleSend);
+            document.getElementById("send").addEventListener("click", handleSend);
         });
 
-       
-
-    </script>
-
-    <script>
         function findMore() {
             document.getElementById("user-input").value = "What Is Zakat, And It's Importance ";
         }
+
         function findMore2() {
             document.getElementById("user-input").value = "What Are The Islamic Rules For Fasting";
         }
+
         function findMore3() {
-            document.getElementById("user-input").value = "Diffrence Between Jihad And Qital, n rules";
+            document.getElementById("user-input").value = "Difference Between Jihad And Qital, and rules";
         }
+
         function findMore4() {
-            document.getElementById("user-input").value = "Proof, Of Hijab In Islam";
+            document.getElementById("user-input").value = "Proof of Hijab In Islam";
         }
-    </script>
-<script>
-    // Function to close the overlay
-    function closeOverlay() {
-        document.getElementById('overlay').style.visibility = 'hidden';
-        // Set a cookie to remember that the overlay has been shown
-        document.cookie = 'overlayShown=true; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/';
-    }
 
-    // Function to check if the overlay should be shown
-    function shouldShowOverlay() {
-        return document.cookie.indexOf('overlayShown=true') === -1;
-    }
-
-    // Show the overlay when the page loads if not shown before
-    window.onload = function() {
-        if (shouldShowOverlay()) {
-            document.getElementById('overlay').style.visibility = 'visible';
-        }
-    };
-</script>
-
-    <script>
-        const API_KEY = "VF.DM.655ed76cd9faee000774243a.HA1ChEuzvjOhEK6q";
-        USER_ID='user_123'
         const interact = (request) =>
             fetch(`https://general-runtime.voiceflow.com/state/user/${encodeURI($("#name").val())}/interact`, {
                 method: 'POST',
@@ -279,22 +227,13 @@ color: #065ec4;
             .then((trace) => {
                 trace.forEach((trace) => {
                     if (trace.type === 'speak' || trace.type === 'text') {
-                        $("#chat-messages").append(`<li>${trace.payload.message}</li>`);
+                        document.getElementById("chat-messages").innerHTML += `<li>${trace.payload.message}</li>`;
                     } else if (trace.type === 'end') {
-                        $("#chat-messages").append(`<li><b>The End!</b></li>`);
+                        document.getElementById("chat-messages").innerHTML += `<li><b>The End!</b></li>`;
                     }
                 });
-                $("#chat-messages").scrollTop($("#chat-messages")[0].scrollHeight);
+                document.getElementById("chat-messages").scrollTop = document.getElementById("chat-messages").scrollHeight;
             });
-
-        
-       
-
-        
     </script>
-
-
-  
 </body>
 </html>
-
