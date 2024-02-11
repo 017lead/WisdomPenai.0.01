@@ -31,6 +31,15 @@
             background-color: #171718;
             color: #f1e8e8;
         }
+        #Report{
+            color: rgb(221, 221, 216);
+            padding-right: 20px;
+            padding-top: 20px;
+            border-radius: 10px;
+        }
+        #Report:hover{
+color: #065ec4;
+        }
         .chat-messages {
             flex-grow: 1;
             overflow: auto;
@@ -42,6 +51,31 @@
             display: flex;
             text-align: center;
             flex-direction: column; /* Reverse the order */
+        }
+
+        #chat-messages li {
+            margin: 5px;
+            padding: 20px;
+            border-radius: 5px;
+            
+            background-color: #e8e5e5;
+        }
+        .send {
+            
+            
+            height: 35px;
+            width: 45px;
+            background-color: #007bff;
+            color: #fff;
+            text-align: center;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        .send:hover{
+            background-color: #5198e3;
         }
         .user-input {
             flex: 1;
@@ -73,15 +107,54 @@
             box-shadow: 1px 1px 7px rgba(113, 112, 112, 0.476);
             margin: 10px;
         }
+        #suggust{
+            display: flex;
+            text-align: center;
+            
+            margin-top:  10px;
+            margin-bottom: 13px;
+            
+            
+        }
+        
+        #suggust button{
+            margin-left: 20px;
+            background-color: #8db8ef45;
+            border-radius: 4px;
+            text-align: center;
+            padding: 10px;
+            
+            border: none;
+            cursor: pointer;
+        }
+        #suggust button:hover{
+            
+            background-color: #187ad545;
+            
+            
+            
+            
+        }
+        #suggust h1{
+            font-size: 13px;
+            color: #636161;
+        }
+        footer {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+        }
         .user-input-container{
             display: flex;
             min-width: 70%;
             margin-top: 30px;
         }
         main{
-            align-items: center;
+            align-content: center;
             text-align: center;
             justify-content: center;
+            margin-right: 10px;
+            
         }
 
         /* Responsive styles */
@@ -115,10 +188,11 @@
         </div>
         </section>
     </main>
-
+<section>
     <footer>
         <p>&copy; 2024 WisdomPen. All rights reserved.</p>
     </footer>
+    </section>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             // Disable the "Send" button initially
@@ -223,3 +297,4 @@
   
 </body>
 </html>
+
