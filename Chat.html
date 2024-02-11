@@ -38,7 +38,7 @@
             overflow: auto;
             border: 1px solid #eeeaeab5;
             min-height: 70%;
-            min-width: 90%;
+            min-width: 94%;
             padding: 20px;
             box-sizing: border-box;
             display: flex;
@@ -70,10 +70,11 @@
         }
         .user-input {
             flex: 1;
-            min-width: 0;
+            min-width: 300px;
             outline: none;
             font-size: 1.2em;
             padding: 10px;
+            
             margin: 9px ;
             border-radius: 10px;
             border: 0.1px solid #e2e2e2f0;
@@ -93,9 +94,9 @@
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 1px 1px 7px rgba(113, 112, 112, 0.476);
-            margin: 10px;
+           
             padding: 10px;
-            width: calc(100% - 20px);
+            width: calc(100%);
         }
         #suggust{
             display: flex;
@@ -123,14 +124,28 @@
         }
         .user-input-container{
             display: flex;
-            width: calc(100% - 20px);
+            align-items: center;
+            text-align: center;
+            width: calc(100% - 128px);
             margin-top: 30px;
         }
         main{
             align-content: center;
             text-align: center;
             justify-content: center;
-            margin-right: 10px;
+            
+        }
+        @media (max-width: 570px){
+            .user-input-container{
+
+            width: calc(100% - 60px);
+        }
+        #suggust{
+            margin-right: 28px;
+        }
+        #suggust h1{
+font-size: 1px;
+        }
         }
 
         /* Responsive styles */
@@ -154,7 +169,7 @@
                    <button class="send" id="send" type="button">Send</button>
                </div>
                <div id="suggust">
-                   <h1>Suggestions:</h1>
+                   
                    <button id="Buttons" onclick="findMore()">Zakat in Islam</button>
                    <button id="Buttons" onclick="findMore2()">Fasting Rules</button>
                    <button id="Buttons" onclick="findMore3()">Jihad and Qital</button>
