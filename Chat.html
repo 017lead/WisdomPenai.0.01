@@ -63,14 +63,20 @@
             background-color: #e8e5e5;
         }
         .send {
-            height: 35px;
-            width: 45px;
+            
+           position: relative;
+           right: 70px;
+           top: 14px;
+           
+          
+            text-align: center;
+            height: 37px;
+            width: 47px;
             background-color: #007bff;
             color: #fff;
             text-align: center;
             border: none;
-            border-radius: 10px;
-            margin-right: 10px;
+            border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s ease;
             box-sizing: border-box;
@@ -82,15 +88,17 @@
             flex: 1;
             min-width: 300px;
             outline: none;
-            font-size: 1.2em;
+            font-size: 1.1em;
             padding: 10px;
-            
-            margin: 9px ;
+            padding-right: 77px;
+            padding-left: 10px;
+            margin: 4px ;
             border-radius: 10px;
             border: 0.1px solid #e2e2e2f0;
             background: #f0efefd6;
             transition: 0.1s ease;
             resize: none;
+           
             box-sizing: border-box;
         }
         .chat-container {
@@ -115,7 +123,7 @@
             margin-bottom: 13px;
         }
         #suggust button{
-            margin-left: 20px;
+            margin-right: 20px;
             background-color: #8db8ef45;
             border-radius: 4px;
             text-align: center;
@@ -126,6 +134,7 @@
         #suggust button:hover{
             background-color: #187ad545;
         }
+       
         footer {
             background-color: #333;
             color: #fff;
@@ -134,9 +143,10 @@
         }
         .user-input-container{
             display: flex;
-            align-items: center;
-            text-align: center;
-            width: calc(100% - 128px);
+           
+           
+            width: calc(100% - 40px);
+            margin-bottom: 20px;
             margin-top: 30px;
         }
         main{
@@ -148,18 +158,19 @@
         @media (max-width: 570px){
             .user-input-container{
 
-            width: calc(100% - 60px);
+            width: calc(100% - 50px);
         }
         #suggust{
-            margin-right: 28px;
+            margin-right: 29px;
         }
         #suggust h1{
 font-size: 1px;
         }
         .send{
             width: 40px;
-            height: 40px;
+            height: 34px;
             padding: 3px;
+           
         }
         }
 
@@ -180,8 +191,10 @@ font-size: 1px;
                    <!-- Chat messages will be added dynamically using JavaScript -->
                </ul>
                <div class="user-input-container">
+                
                    <textarea class="user-input" id="user-input" name="user-input" placeholder="Enter your response..."></textarea>
                    <button class="send" id="send" type="button">Send</button>
+                  
                </div>
                <div id="suggust">
                    
@@ -315,5 +328,7 @@ font-size: 1px;
 
         
     </script>
-     </body>
+   
+        
+    </body>
   </html>
