@@ -56,14 +56,16 @@
             display: flex;
             text-align: center;
             flex-direction: column; /* Reverse the order */
+            line-height: 2.0;
+            
         }
 
         #chat-messages li {
             margin: 5px;
             padding: 20px;
-            
+            line-height: 2.0;
             border-radius: 9px;
-            background-color: #b1aeae67;
+            background-color: #c9c6c667;
         }
         .send {
             
@@ -73,7 +75,7 @@
             text-align: center;
             height: 37px;
             width: 50px;
-            background-color: #007bff;
+            background-color: #274225;
             color: #fff;
             text-align: center;
             border: none;
@@ -85,22 +87,24 @@
             box-sizing: border-box;
         }
         .send:hover{
-            background-color: #5198e3;
+            background-color: #336131;
         }
         .user-input {
         
             flex: 1;
            min-width: 79%;
-           min-height: 40px;
+          
+           max-height: 80px;
             outline: none;
             font-size: 1.1em;
             padding: 4px;
             
            border: none;
            
-            background: #f0efef00;
+            background-color: rgba(255, 255, 255, 0);
             transition: 0.1s ease;
-            
+            resize: vertical; /* Allow vertical resizing */
+            overflow-y: auto; 
            
             box-sizing: border-box;
         }
@@ -122,21 +126,26 @@
         #suggust{
             display: flex;
             text-align: center;
+            justify-content: center;
             margin-top: 10px;
+            margin-left: 28px;
+            margin-right: 40px;
             margin-bottom: 13px;
         }
         #suggust button{
-            margin-right: 20px;
+           align-items: center;
+           justify-content: center;
+            background-color: #e3e2dedc;
+            border-radius: 7px;
             margin-left: 10px;
-            background-color: #8db8ef45;
-            border-radius: 4px;
+            box-shadow: 0px 0px 3px;
             text-align: center;
             padding: 10px;
             border: none;
             cursor: pointer;
         }
         #suggust button:hover{
-            background-color: #187ad545;
+            background-color: #c8d9e845;
         }
        
         footer {
@@ -151,13 +160,16 @@
            
            justify-content: center;
            min-height: 47px;
+           max-height: 80px;
             min-width: 94%;
             margin-bottom: 20px;
             border-radius: 14px;
             margin-top: 30px;
             padding: 10px;
-            background-color: #eae5e5cc;
+            background-color: #eae9e7d4;
+            box-shadow: 0px 0px 4px;
         }
+       
         main{
             align-content: center;
             text-align: center;
@@ -169,13 +181,8 @@
                 min-width: 99%;
             }
         
-        #suggust{
-            margin-right: 23px;
-           
-        }
-        #suggust h1{
-font-size: 1px;
-        }
+       
+       
         
         }
 
@@ -197,7 +204,7 @@ font-size: 1px;
                </ul>
                <div class="user-input-container">
                 
-                   <textarea class="user-input" id="user-input" name="user-input" placeholder="Enter your response..."></textarea>
+                   <textarea class="user-input" id="user-input" name="user-input" placeholder="Enter Your Questions Here..."></textarea>
                    <button class="send" id="send" type="button">Send</button>
                   
                </div>
@@ -216,8 +223,12 @@ font-size: 1px;
         <p>&copy; 2024 WisdomPen. All rights reserved.</p>
     </footer>
 
-    
-        
+   <script>
+document.getElementById('user-input').addEventListener('input', function() {
+        this.style.height = 'auto'; // Reset height to auto to calculate new height
+        this.style.height = (this.scrollHeight <= 80 ? this.scrollHeight : 80) + 'px'; // Set height to new calculated height, with maximum of 80px
+    });
+</script>
 <script>
         function findMore() {
             document.getElementById("user-input").value = "What Is Zakat, And It's Importance ";
