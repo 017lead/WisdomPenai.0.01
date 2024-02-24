@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Page Title</title>
@@ -13,47 +13,93 @@
             box-sizing: border-box;
         }
         body {
-            font-family: Arial, sans-serif;
-            background-color: #e4e7eb;
+            font-family: Arial , sans-serif;
+            background-color: #fafafacc;
+            
         }
 
         header {
             display: flex;
-            max-height: 200px;
+            max-height: 140px;
             text-align: center;
             justify-content: center;
             backdrop-filter: blur(20px);
-            background-color: #171718;
-            color: #f1e8e8;
+            background-color: #fafafacc;
+            
         }
         header h1{
-            margin-top: 20px;
-            margin-bottom: 20px;
+            font-size: 30px;
+            margin-top: 14px;
+            margin-bottom: 7px;
+            
         }
         header a{
             margin-top: 10px;
             margin-left: 80px;
+            
         }
         #Report{
-            color: rgb(221, 221, 216);
+            color: rgb(49, 49, 47);
             padding-right: 20px;
-            padding-top: 20px;
+            padding-top: 16px;
             border-radius: 10px;
+            
         }
         #Report:hover{
             color: #065ec4;
         }
+        
+        #overlaybox{
+            display: flex;
+            align-items: center;
+            text-align: center;
+            justify-content: center;
+             min-width: 100%;
+             min-height: 50px;
+           
+            
+            
+           
+            
+
+
+        }
+        #overlaychat{
+            position: fixed;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    justify-content: center; /* Adjusted */
+    min-height: 47px;
+    max-height: 80px;
+    z-index: 1;
+    min-width: 94%;
+    margin-bottom: 12px;
+    border-radius: 14px;
+    padding: 10px;
+    background-color: #fafafacc;
+    backdrop-filter: blur(1.5px);
+    box-shadow: 0px 0px 4px rgb(189, 186, 186);
+    top: 530px;
+        }
+
+.light-br{
+    background-color: #eae9e7bc;
+    color: #2d2b2b;
+}
+
         .chat-messages {
             flex-grow: 1;
             overflow: auto;
-            border: 1px solid #eeeaea41;
-            min-height: 70%;
+            
+            min-height: 90%;
             background-image:linear-gradient(rgba(240, 234, 234, 0) 80%, rgba(231, 230, 230, 0.401));
-            min-width: 94%;
+            min-width: 90%;
             padding: 24px;
             box-sizing: border-box;
-            box-shadow: 0px 0px 3px  rgb(202, 200, 200);
+            
             display: flex;
+            border-radius: 10px;
             text-align: center;
             flex-direction: column; /* Reverse the order */
             line-height: 2.0;
@@ -65,7 +111,7 @@
             padding: 20px;
             line-height: 2.0;
             border-radius: 9px;
-            background-color: #c9c6c667;
+            background-color: #eeeaeaaf;
         }
         .send {
             
@@ -75,7 +121,7 @@
             text-align: center;
             height: 37px;
             width: 50px;
-            background-color: #274225;
+            background-color: #274525;
             color: #fff;
             text-align: center;
             border: none;
@@ -92,7 +138,7 @@
         .user-input {
         
             flex: 1;
-           min-width: 79%;
+           min-width: 70%;
           
            max-height: 80px;
             outline: none;
@@ -100,80 +146,91 @@
             padding: 4px;
             
            border: none;
-           
-            background-color: rgba(255, 255, 255, 0);
+           background-color: #908a8a00;
+            
             transition: 0.1s ease;
             resize: vertical; /* Allow vertical resizing */
             overflow-y: auto; 
            
             box-sizing: border-box;
         }
+      
+       
         .chat-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
+            min-height: 82vh;
+            
             background-color: #fafafacc;
            
-           border-radius: 10px;
             overflow: hidden;
-            box-shadow: 1px 1px 7px rgba(113, 112, 112, 0.476);
+            
            
             padding: 10px;
             width: calc(100%);
         }
+
+.light-bg3{
+    background-color: #fafafacc;
+    color: #333;
+
+}
         #suggust{
-            display: flex;
+            display: flex block;
+            z-index: 1;
             text-align: center;
             justify-content: center;
+            align-items: center;
             margin-top: 10px;
-            margin-left: 28px;
-            margin-right: 40px;
-            margin-bottom: 13px;
+            
+            
         }
-        #suggust button{
+        #overtheview{
+            position: fixed;
+            top: 460px;
            align-items: center;
-           justify-content: center;
-            background-color: #edf2f0;
-            border-radius: 7px;
-            margin-left: 10px;
-            box-shadow: 0px 0px 3px;
-            text-align: center;
-            padding: 10px;
-            border: none;
-            cursor: pointer;
+            
+            justify-content: center;
+            z-index: 2;
+        }
+       
+        #suggust button{
+           
+            display: inline-block;
+        padding: 10px 20px;
+        margin: 10pz;
+        border: none;
+       box-shadow: 0px 0px 2px 0px rgb(116, 115, 115) ;
+        border-radius: 5px;
+        background-color: #caceca00; /* Green */
+        color: rgb(130, 127, 127);
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        cursor: pointer;
+        transition-duration: 0.4s;
         }
         #suggust button:hover{
-            background-color: #c8d9e845;
+            background-color: #45a049;
         }
        
         footer {
+            
             background-color: #333;
             color: #fff;
             text-align: center;
-            padding: 10px;
+            padding: 5px;
         }
-        .user-input-container{
-            display: flex;
-           align-items: center;
-           
-           justify-content: center;
-           min-height: 47px;
-           max-height: 80px;
-            min-width: 94%;
-            margin-bottom: 20px;
-            border-radius: 14px;
-            margin-top: 30px;
-            padding: 10px;
-            background-color: #eae9e7d4;
-            box-shadow: 0px 0px 4px;
-        }
+        
        
         main{
+            min-height: fit-content;
             align-content: center;
             text-align: center;
             justify-content: center;
+            
             
         }
         @media (max-width: 570px){
@@ -191,37 +248,62 @@
     </style>
 </head>
 <body>
-    <header>
-        <h1 class="test">Beta Testing: 0.0.1</h1>
+    <header id="header">
+        <h1 class="test">Beta Testing: 0.5.0</h1>
+
         <a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
+    
+        
     </header>
 
     <main>
-       <section>
-           <section class="chat-container">
+       
+       
+        <section>
+           
+           <section class="chat-container" id="chat-container">
+           
+
                <ul class="chat-messages" id="chat-messages">
                    <!-- Chat messages will be added dynamically using JavaScript -->
                </ul>
+
                <div class="user-input-container">
                 
-                   <textarea class="user-input" id="user-input" name="user-input" placeholder="Enter Your Questions Here..."></textarea>
-                   <button class="send" id="send" type="button">Send</button>
-                  
+              
                </div>
-               <div id="suggust">
-                   
-                   <button id="Buttons" onclick="findMore()">Zakat in Islam</button>
-                   <button id="Buttons" onclick="findMore2()">Fasting Rules</button>
-                   <button id="Buttons" onclick="findMore3()">Jihad and Qital</button>
-                   <button id="Buttons" onclick="findMore4()">Proof, Hijab In Islam</button>
-               </div>
-           </section>
+               
+              
+            
+                  </section>
+                
        </section>
+       <!-- 
+       <div id="suggust">
+        <div id="overtheview">
+        
+        <button id="Buttons" onclick="findMore()">Zakat in Islam</button>
+        <button id="Buttons" onclick="findMore2()">Fasting Rules</button>
+        <button id="Buttons" onclick="findMore3()">Jihad and Qital</button>
+        <button id="Buttons" onclick="findMore4()">Proof, Hijab In Islam</button>
+  </div>
+  </div>
+-->
+     <div id="overlaybox" >
+     <div id="overlaychat">
+     <textarea class="user-input" id="user-input" placeholder="Type Your Questions Here.."></textarea>
+
+     <button  class="send" id="send">Find</button>
+    </div>
+    </div>
+
+    
+
     </main>
 
-    <footer>
-        <p>&copy; 2024 WisdomPen. All rights reserved.</p>
-    </footer>
+
+    
+    
 
    <script>
 document.getElementById('user-input').addEventListener('input', function() {
@@ -245,8 +327,44 @@ document.getElementById('user-input').addEventListener('input', function() {
         function findMore4() {
             document.getElementById("user-input").value = "Proof of Hijab In Islam";
         }
+        function submitForm() {
+            var suggestionDiv = document.getElementById("suggust");
+            var userInput = document.getElementById("user-input").value;
+            // Hide the suggestion div
+            suggestionDiv.style.display = "none";
+        }
     </script>
-   
+
+    
+
+    <script>
+        const chatOverlay2 = document.getElementById('chat-container');
+        const toggleButton2 = document.getElementById('toggleButton');
+        const togglehead = document.getElementById('header');
+        const userinput = document.getElementsByClassName('user-input')
+        let isDarkMode2 = false;
+    
+        toggleButton.addEventListener('click', () => {
+            isDarkMode2 = !isDarkMode2;
+            if (isDarkMode2){
+                togglehead.classList.add('dark-bg3')
+                togglehead.classList.remove('light-bg3')
+
+            chatOverlay2.classList.add('dark-bg3');
+            chatOverlay2.classList.remove('light-bg3');
+            userinput.classList.add('dark-bg3')
+            userinput.classList.remove('light-bg3')
+        } else {
+            chatOverlay2.classList.remove('dark-bg3');
+            chatOverlay2.classList.add('light-bg3');
+            togglehead.classList.remove('dark-bg3')
+            togglehead.classList.add('light-bg3')
+            userinput.classList.add('light-bg3')
+           userinput.classList.remove('dark-bg3')
+        }
+        });
+    </script>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             // Disable the "Send" button initially
