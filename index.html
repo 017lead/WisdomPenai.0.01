@@ -41,11 +41,12 @@ overflow: auto;
 
         header {
             display: flex;
-            max-height: 200px;
+            max-height: 100px;
             text-align: center;
             justify-content: center;
-            backdrop-filter: blur(20px);
-            background-color: #171718;
+            
+            
+            background-color: none;
             color: #f1e8e8;
             
             
@@ -58,18 +59,31 @@ overflow: auto;
         }
     
         ul {
+            position: fixed;
+           z-index: 1; 
             text-align: center;
+            min-width: 490px;
+            min-height: 6px;
+            border-radius: 39px;
+           
+            
             margin-bottom: 10px;
             padding-bottom: 20px;
-            padding-top: 30px;
+            padding-top: 20px;
+            background-color: #4a4a4ced;
+            backdrop-filter: blur(20%);
+            box-shadow: 0px 0px 0px   #3e3e3f;
+            margin-top: 16px;
         }
     
         li a {
+            
             text-decoration: none;
-        color: #c2bcbc;
-        width: 50px;
-        height: 40px;
-        border-radius: 8px;
+            color: #c2bcbc;
+            width: 50px;
+            height: 40px;
+            border-radius: 8px;
+            
         }
     
         li a:hover {
@@ -78,14 +92,14 @@ overflow: auto;
         }
     
         header img {
-            position: absolute;
-        top: 1px; /* Adjust the top value to move the image down */
+            position: fixed;
+        top: 15px; /* Adjust the top value to move the image down */
         left: 50%; /* Adjust the left value if needed */
         transform: translateX(-50%);
-        width: 70px;
+        width: 60px;
         }
         header img:hover{
-            background-color: #464648;
+            background-color: #353537;
             border-radius: 70px;
             margin-bottom: 9px;
         }
@@ -104,7 +118,7 @@ overflow: auto;
     position: relative ;
    transform: translateY(100px);
    opacity: 0;
-   transition: all 2s ease;
+   transition: all 1.5s ease;
 }
 .reveal.active{
     transform: translateY(0px);
@@ -117,10 +131,10 @@ overflow: auto;
 
         #page2 {
            
-            min-height: 690px;
+            min-height: 730px;
             width: 100%;
             
-            margin-top: 10px;
+            
             background-image: linear-gradient( rgb(225, 219, 219) 20%, rgb(241, 241, 241) );
             margin-right: 20px; 
     margin-left: 20px ;
@@ -129,7 +143,7 @@ overflow: auto;
         }
 #page2 h2{
     margin-top: 190px;
-    font-size: 60px;
+    font-size: 57px;
     margin-bottom: 30px;
     text-align: center;
     color: rgb(0, 0, 0);
@@ -137,7 +151,7 @@ overflow: auto;
 }
 #page2 p{
    
-    font-size: 30px;
+    font-size: 28px;
     text-align: center;
     margin-bottom: 60px;
     
@@ -187,9 +201,9 @@ margin-right: 20px ;
         }
 
        #page1 h1{
-        margin-top: 250px;
+        margin-top: 270px;
        text-align: center;
-        font-size: 60px;
+        font-size: 68px;
         text-wrap: balance;
         
 
@@ -200,7 +214,8 @@ margin-right: 20px ;
         
        text-align: center;
         font-size: 30px;
-        
+        margin-right: 20px;
+        margin-left: 20px;
         margin-bottom: 40px;
         
        }
@@ -211,18 +226,19 @@ margin-right: 20px ;
 
         .page3 {
             
-            margin-top: 10px;
+            
             margin-right: 20px; 
     margin-left: 20px ;
-            min-height: 780px;
+    margin-bottom: 20px;
+            min-height: 850px;
             min-width: 100%;
             text-align: center;
-            background-image: linear-gradient(white 60%, rgb(207, 204, 204));
+            background-image: linear-gradient(rgb(241, 241, 241) 60%, rgb(235, 231, 231));
         }
         .page3 h2{
             margin-top: 247px;
-            margin-bottom: 50px;
-            font-size: 50px;
+            margin-bottom: 78px;
+            font-size: 46px;
         }
         .stay .reveal{
             min-height: 700px;
@@ -289,7 +305,7 @@ background-color: rgb(166, 166, 166);
             
         }
         .last3 p{
-            margin-left: 20px;
+           text-align: center;
         }
        
 
@@ -305,16 +321,21 @@ background-color: rgb(166, 166, 166);
         @media (max-width: 590px) {
           
              #page1 h1 {
-              font-size: 40px;
+              font-size: 43px;
+              
                margin-left: 10px;
                margin-right: 10px;
             }
             #page1 p{
               font-size: 24px ;
-              margin-left: 10px;
-              margin-right: 10px ;
+              margin-left: 20px;
+              margin-right: 20px ;
             }
-          
+          #page2 p{
+            font-size: 24px;
+            margin-left: 20px;
+            margin-right: 20px;
+          }
 
             
         }
@@ -337,7 +358,7 @@ background-color: rgb(166, 166, 166);
 <main>
     <section id="page1">
         <div class="font12 ">
-            <h1 class="text reveal"> <span style="color: #161515;">Islamic</span>, Simple, Smart, Ai</h1>
+            <h1 class="text reveal"> <span style="color: #161515;">Revolution In Knowldege </h1>
             <p class="font2 reveal" style="color: #2e2d2d;">To answer your questions on <span style="color: #000000;">Islam</span> with accuracy</p>
         </div>
     </section>
@@ -360,7 +381,7 @@ background-color: rgb(166, 166, 166);
     <section class="page3" id="page3" >
         <div class="the3 reveal ">
         <h2 class="text">Blogs/Updates</h2>
-        <h1 style="color: #fff;">Privacy and Service</h1>
+       
         <a href="Service.html" class="submit-button2">News/info</a>
         </div>
         <div class="stay"></div>

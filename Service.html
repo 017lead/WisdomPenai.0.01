@@ -20,14 +20,14 @@
         }
 
 
-
         header {
             display: flex;
-            max-height: 200px;
+            max-height: 100px;
             text-align: center;
             justify-content: center;
-            backdrop-filter: blur(20px);
-            background-color: #171718;
+            
+            
+            background-color: none;
             color: #f1e8e8;
             
             
@@ -40,13 +40,25 @@
         }
     
         ul {
+            position: fixed;
+           z-index: 1; 
             text-align: center;
+            min-width: 490px;
+            min-height: 6px;
+            border-radius: 39px;
+           
+            
             margin-bottom: 10px;
             padding-bottom: 20px;
-            padding-top: 30px;
+            padding-top: 20px;
+            background-color: #4a4a4ced;
+            backdrop-filter: blur(20%);
+            box-shadow: 0px 0px 0px   #3e3e3f;
+            margin-top: 16px;
         }
     
         li a {
+            
             text-decoration: none;
             color: #c2bcbc;
             width: 50px;
@@ -61,18 +73,18 @@
         }
     
         header img {
-            position: absolute;
-        top: 1px; /* Adjust the top value to move the image down */
+            position: fixed;
+        top: 15px; /* Adjust the top value to move the image down */
         left: 50%; /* Adjust the left value if needed */
         transform: translateX(-50%);
-        width: 70px;
+        width: 60px;
         }
         header img:hover{
-            background-color: #464648;
+            background-color: #353537;
             border-radius: 70px;
             margin-bottom: 9px;
         }
-
+    
         section {
             min-width: 100%;
             display: flex;
@@ -81,6 +93,7 @@
             align-items: center;
             justify-content: center;
             margin: 10px;
+            margin-top: 100px;
         }
 
         section .continer {
@@ -162,7 +175,7 @@
         <ul>
             <li><a href="Chat.html">WisdomPen Ai</a></li>
             <li ><a href="index.html"><img src="Logo.png" alt="Home"></a></li>
-            <li><a href="Service.html">Blogs/Updates</a></li>
+         <li><a href="Service.html">Blogs/Updates</a></li>
         </ul>
     </header>
 
