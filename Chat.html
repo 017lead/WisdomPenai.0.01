@@ -16,6 +16,7 @@
             font-family: Arial , sans-serif;
             background-color: #fafafacc;
             
+            
         }
 
         header {
@@ -50,13 +51,14 @@
         }
         
         #overlaybox{
+            position: fixed;
+            bottom: 0; /* Position at the bottom */
+            left: 0; /* Align to the left */
+            right: 0; /* Align to the right */
             display: flex;
             align-items: center;
-            text-align: center;
             justify-content: center;
-             min-width: 100%;
-             min-height: 50px;
-           
+            z-index: 2;
             
             
            
@@ -65,7 +67,7 @@
 
         }
         #overlaychat{
-            position: fixed;
+            
     display: flex;
     align-items: center;
     text-align: center;
@@ -97,7 +99,7 @@
             min-width: 90%;
             padding: 24px;
             box-sizing: border-box;
-            
+            margin-bottom: 30px;
             display: flex;
             border-radius: 10px;
             text-align: center;
@@ -230,7 +232,7 @@
             align-content: center;
             text-align: center;
             justify-content: center;
-            
+            overflow: hidden;
             
         }
         @media (max-width: 570px){
@@ -437,7 +439,7 @@ document.getElementById('user-input').addEventListener('input', function() {
 </script>
 
     <script>
-        const API_KEY = "VF.DM.655ed76cd9faee000774243a.HA1ChEuzvjOhEK6q";
+        const API_KEY = "VF.DM.655ed76cd9faee000774243a.HA1ChEuzvjOhEK6qi";
 
         const interact = (request) =>
             fetch(`https://general-runtime.voiceflow.com/state/user/${encodeURI($("#name").val())}/interact`, {
