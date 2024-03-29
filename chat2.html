@@ -42,7 +42,7 @@
             margin-top: 10px;
             margin-left: 10px;
         }
-        
+       
         #Report{
             color: rgb(245, 245, 237);
             padding-right: 20px;
@@ -69,24 +69,24 @@
 
 
         }
-        #overlaychat{
+        #overlaychat {
             position: fixed;
-    display: flex;
-    align-items: center;
-    text-align: center;
-    justify-content: center; /* Adjusted */
-    min-height: 47px;
-    max-height: 80px;
-    z-index: 1;
-    min-width: 94%;
-    margin-bottom: 12px;
-    border-radius: 14px;
-    padding: 10px;
-    background-color: #312f2fc6;
-    backdrop-filter: blur(1.5px);
-    box-shadow: 0px 0px 4px rgb(63, 62, 62);
-    top: 530px;
-        }
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #312f2fc6;
+            backdrop-filter: blur(1.5px);
+            box-shadow: 0px 0px 4px rgb(63, 62, 62);
+            padding: 10px;
+            
+            border-radius: 10px;
+            z-index: 9999; /* Ensure it's on top of other elements */
+            max-height: 80px; /* Adjust this value to control the maximum height */
+            overflow-y: auto; /* Enable vertical scrolling if content exceeds max-height */
+          }
        #underlay{
         position: fixed;
     display: flex;
@@ -121,14 +121,14 @@
             flex-grow: 1;
             overflow: auto;
             color: #e9e3e3;
-            min-height: 90%;
+            min-height: 94%;
             
             background-image:linear-gradient(rgba(240, 234, 234, 0) 80%, rgba(40, 38, 38, 0.904));
            
             min-width: 90%;
             padding: 24px;
             box-sizing: border-box;
-            margin-bottom: 30px;
+            margin-bottom: 60px;
             display: flex;
             border-radius: 10px;
             text-align: center;
@@ -147,11 +147,6 @@
             background-color: #494747af;
         }
         .send {
-            
-           
-           
-          
-            text-align: center;
             height: 37px;
             width: 50px;
             background-color: #274525;
@@ -159,34 +154,32 @@
             text-align: center;
             border: none;
             border-radius: 6px;
-           margin-left: 9px;
-           margin-right: 9px;
+            margin-left: 9px;
+            margin-right: 9px;
             cursor: pointer;
             transition: background-color 0.3s ease;
             box-sizing: border-box;
-        }
+          }
+          
         .send:hover{
             background-color: #336131;
         }
         .user-input {
-        
             flex: 1;
-           min-width: 70%;
-          font-family: Arial,sans-serif, "Gill Sans";
-           max-height: 80px;
+            min-width: 70%;
+            font-family: Arial, sans-serif, "Gill Sans";
+            max-height: 80px;
             outline: none;
             font-size: 1.1em;
             padding: 4px;
             color: #f2ebeb;
-           border: none;
-           background-color: #908a8a00;
-            
+            border: none;
+            background-color: transparent;
             transition: 0.1s ease;
             resize: vertical; /* Allow vertical resizing */
-            overflow-y: auto; 
-           
+            overflow-y: auto; /* Enable vertical scrolling if content exceeds max-height */
             box-sizing: border-box;
-        }
+          }
       
        
         .chat-container {
@@ -280,6 +273,11 @@
        
         
         }
+        @media (max-width: 767px) {
+            #overlaychat {
+              
+            }
+          }
         @media (min-height: 830px){
             #overlaychat{
                 top: 790px;
