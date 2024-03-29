@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WisdomPen.com</title>
+    <style>
+
+        * {
+            margin: 0px;
+            padding: 0px;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial , sans-serif;
+            background-color: #161515;
+            
+            
+        }
+
+        header {
+            display: flex;
+            max-height: 140px;
+            text-align: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+            background-color: #fafafa00;
+            
+        }
+
+        header h1{
+            font-size: 30px;
+            margin-top: 14px;
+            margin-bottom: 7px;
+            color: rgb(244, 239, 239);
+            
+        }
+        header a{
+            margin-top: 10px;
+            margin-left: 10px;
+        }
+        .dropbtn{
+            padding: 10px;
+            border-radius: 10px;
+            color: rgb(242, 236, 236);
+            background-color: #f2f0f000;
+            border: 1px rgb(166, 165, 165);
+            box-shadow: 0px 0px 4px 2px rgb(53, 53, 53);
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+            margin-top: 13px;
+            margin-left: 44px;
+            margin-right: 10px;
+            padding: 3px;
+          }
+          
+          /* Style for dropdown content */
+          .dropdown-content {
+            display: none;
+            position: absolute;
+            margin-bottom: 4px;
+            padding: 10px;
+            font-size: 13px;
+            background-color: #444242;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(35, 34, 34, 0.939);
+            z-index: 1;
+          }
+
+          /* Style for dropdown items */
+          .dropdown-content a {
+            color: rgb(241, 237, 237);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 3px;
+            font-size: 10px;
+            text-decoration: none;
+            display: block;
+            margin-left: 20px;
+          }
+          /* Change color of dropdown items on hover */
+          .dropdown-content a:hover {
+            background-color: #f1f1f1;
+          }
+          /* Show dropdown content on hover */
+          .dropdown:hover .dropdown-content {
+            display: block;
+          }
+          /* Position dropdown to the top right */
+          .dropdown-content {
+            right: 0;
+            top: 100%;
+           
+            border-radius: 10px;
+          }
+
+        #Report{
+            color: rgb(245, 245, 237);
+            padding-right: 20px;
+            padding-top: 16px;
+            border-radius: 10px;
+            
+        }
+        #Report:hover{
+            color: #065ec4;
+        }
+        
+        #overlaybox{
+            position: fixed;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            justify-content: center;
+             min-width: 100%;
+             min-height: 50px;
+            
+            
+           
+            
+
+
+        }
+        #overlaychat{
+            position: fixed;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    justify-content: center; /* Adjusted */
+    min-height: 47px;
+    max-height: 80px;
+    z-index: 1;
+    min-width: 94%;
+    margin-bottom: 12px;
+    border-radius: 14px;
+    padding: 10px;
+    background-color: #312f2fc6;
+    backdrop-filter: blur(1.5px);
+    box-shadow: 0px 0px 4px rgb(63, 62, 62);
+    top: 530px;
+        }
+       #underlay{
+        position: fixed;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    justify-content: center; /* Adjusted */
+    
+    z-index: 2;
+    min-width: 94%;
+    margin-bottom: 12px;
+    top: 810px;
+   
+   
+    backdrop-filter: blur(1.5px);
+    box-shadow: 0px 0px 4px rgb(63, 62, 62);
+    
+       }
+       #text{
+        display: flex;
+        color: rgb(244, 244, 238);
+        align-items: center;
+        justify-content: center;
+
+       }
+
+.light-br{
+    background-color: #eae9e7bc;
+    color: #2d2b2b;
+}
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow: auto;
+            color: #e9e3e3;
+            min-height: 90%;
+            
+            background-image:linear-gradient(rgba(240, 234, 234, 0) 80%, rgba(40, 38, 38, 0.904));
+           
+            min-width: 90%;
+            padding: 24px;
+            box-sizing: border-box;
+            margin-bottom: 30px;
+            display: flex;
+            border-radius: 10px;
+            text-align: center;
+            flex-direction: column; /* Reverse the order */
+            line-height: 2.0;
+            
+        }
+
+        #chat-messages li {
+            margin: 5px;
+            padding: 20px;
+            margin-bottom: 6px;
+            line-height: 2.0;
+            border-radius: 9px;
+            color: #eee8e8;
+            background-color: #494747af;
+        }
+        .send {
+            
+           
+           
+          
+            text-align: center;
+            height: 37px;
+            width: 50px;
+            background-color: #274525;
+            color: #fff;
+            text-align: center;
+            border: none;
+            border-radius: 6px;
+           margin-left: 9px;
+           margin-right: 9px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        .send:hover{
+            background-color: #336131;
+        }
+        .user-input {
+        
+            flex: 1;
+           min-width: 70%;
+          font-family: Arial,sans-serif, "Gill Sans";
+           max-height: 80px;
+            outline: none;
+            font-size: 1.1em;
+            padding: 4px;
+            color: #f2ebeb;
+           border: none;
+           background-color: #908a8a00;
+            
+            transition: 0.1s ease;
+            resize: vertical; /* Allow vertical resizing */
+            overflow-y: auto; 
+           
+            box-sizing: border-box;
+        }
+      
+       
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 82vh;
+            
+            background-color: #fafafa00;
+           
+            overflow: hidden;
+            
+           
+            padding: 10px;
+            width: calc(100%);
+        }
+
+.light-bg3{
+    background-color: #fafafacc;
+    color: #333;
+
+}
+        #suggust{
+            display: flex block;
+            z-index: 1;
+            text-align: center;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+            
+            
+        }
+        #overtheview{
+            position: fixed;
+            top: 460px;
+           align-items: center;
+            
+            justify-content: center;
+            z-index: 2;
+        }
+       
+        #suggust button{
+           
+            display: inline-block;
+        padding: 10px 20px;
+        margin: 10pz;
+        border: none;
+       box-shadow: 0px 0px 2px 0px rgb(116, 115, 115) ;
+        border-radius: 5px;
+        background-color: #caceca00; /* Green */
+        color: rgb(130, 127, 127);
+        text-align: center;
+        text-decoration: none;
+        font-size: 16px;
+        cursor: pointer;
+        transition-duration: 0.4s;
+        }
+        #suggust button:hover{
+            background-color: #45a049;
+        }
+       
+        footer {
+            
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 5px;
+        }
+        
+       
+        main{
+            min-height: fit-content;
+            align-content: center;
+            text-align: center;
+            justify-content: center;
+            overflow: hidden;
+            
+        }
+        @media (max-width: 570px){
+            .user-input-container{
+                min-width: 99%;
+            }
+            header h1{
+                font-size: 20px;
+               }
+               header a{
+                font-size: 15px;
+               }
+       
+       
+        
+        }
+        @media (min-height: 830px){
+            #overlaychat{
+                top: 790px;
+
+            }
+            
+        
+        }
+
+        /* Responsive styles */
+      
+    </style>
+</head>
+<body>
+    <header id="header">
+        <div class="dropdown">
+            <!-- Button to trigger dropdown -->
+            <button class="dropbtn">Settings</button>
+            <!-- Dropdown content -->
+            <div class="dropdown-content">
+               
+              <!-- Dark mode toggle -->
+              
+              <label for="dark-mode-toggle">Light Mode</label>
+              <input type="checkbox" onclick="checkCondition()" id="dark-mode-toggle">
+             
+            </div>
+          </div>
+
+        <h1 class="test">Beta Testing: 0.5.9</h1>
+        <a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
+    
+        
+    </header>
+
+    <main>
+       
+       
+        <section>
+           
+           <section class="chat-container" id="chat-container">
+           
+
+               <ul class="chat-messages" id="chat-messages">
+                   <!-- Chat messages will be added dynamically using JavaScript -->
+               </ul>
+
+               <div class="user-input-container">
+                
+              
+               </div>
+               
+              
+            
+                  </section>
+                
+       </section>
+       <!-- 
+       <div id="suggust">
+        <div id="overtheview">
+        
+        <button id="Buttons" onclick="findMore()">Zakat in Islam</button>
+        <button id="Buttons" onclick="findMore2()">Fasting Rules</button>
+        <button id="Buttons" onclick="findMore3()">Jihad and Qital</button>
+        <button id="Buttons" onclick="findMore4()">Proof, Hijab In Islam</button>
+  </div>
+  </div>
+-->
+<div>
+     <div id="overlaybox" >
+     <div id="overlaychat">
+     <textarea class="user-input" id="user-input" placeholder="Type Your Questions Here.."></textarea>
+
+     <button  class="send" id="send">Find</button>
+     
+    
+
+    
+   
+    </div>
+    </div>
+   
+    </main>
+
+
+   
+    <script>
+        // Function to check the user's previous choice stored in a cookie
+        function checkUserPreference() {
+            const darkModeCookie = getCookie('darkMode');
+            if (darkModeCookie === 'true') {
+                // Apply dark mode
+                document.body.classList.add('dark-mode');
+            } else {
+                // Apply light mode (if not already applied)
+                document.body.classList.remove('dark-mode');
+            }
+        }
+
+        // Function to get the value of a cookie
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        // Call the function to check user preference when the page loads
+        window.addEventListener('load', checkUserPreference);
+    </script>
+
+   <script>
+document.getElementById('user-input').addEventListener('input', function() {
+        this.style.height = 'auto'; // Reset height to auto to calculate new height
+        this.style.height = (this.scrollHeight <= 80 ? this.scrollHeight : 80) + 'px'; // Set height to new calculated height, with maximum of 80px
+    });
+</script>
+<script>
+    var condition = true;
+
+    function checkCondition() {
+        if (condition) {
+            window.location.href = 'text.html'; // Redirect to file1.html if condition is true
+        } else {
+            window.location.href = 'file2.html'; // Redirect to file2.html if condition is false
+        }
+    }
+
+        function findMore() {
+            document.getElementById("user-input").value = "What Is Zakat, And It's Importance ";
+        }
+
+        function findMore2() {
+            document.getElementById("user-input").value = "What Are The Islamic Rules For Fasting";
+        }
+
+        function findMore3() {
+            document.getElementById("user-input").value = "Difference Between Jihad And Qital, and rules";
+        }
+
+        function findMore4() {
+            document.getElementById("user-input").value = "Proof of Hijab In Islam";
+        }
+        function submitForm() {
+            var suggestionDiv = document.getElementById("suggust");
+            var userInput = document.getElementById("user-input").value;
+            // Hide the suggestion div
+            suggestionDiv.style.display = "none";
+        }
+    </script>
+
+    
+
+    <script>
+        const chatOverlay2 = document.getElementById('chat-container');
+        const toggleButton2 = document.getElementById('toggleButton'); // Assuming you have a toggle button with id 'toggleButton'
+        const togglehead = document.getElementById('header');
+        const userinput = document.getElementsByClassName('user-input');
+        let isDarkMode2 = false;
+    
+        toggleButton2.addEventListener('click', () => { // Change 'toggleButton' to 'toggleButton2'
+            isDarkMode2 = !isDarkMode2;
+            if (isDarkMode2) {
+                togglehead.classList.add('dark-bg3');
+                togglehead.classList.remove('light-bg3');
+    
+                chatOverlay2.classList.add('dark-bg3');
+                chatOverlay2.classList.remove('light-bg3');
+    
+                for (let i = 0; i < userinput.length; i++) { // Loop through all elements with 'user-input' class
+                    userinput[i].classList.add('dark-bg3');
+                    userinput[i].classList.remove('light-bg3');
+                }
+            } else {
+                chatOverlay2.classList.remove('dark-bg3');
+                chatOverlay2.classList.add('light-bg3');
+    
+                togglehead.classList.remove('dark-bg3');
+                togglehead.classList.add('light-bg3');
+    
+                for (let i = 0; i < userinput.length; i++) { // Loop through all elements with 'user-input' class
+                    userinput[i].classList.remove('dark-bg3');
+                    userinput[i].classList.add('light-bg3');
+                }
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Disable the "Send" button initially
+            $("#send").prop("disabled", true);
+
+            // Function to enable/disable the "Send" button based on user input
+            function toggleSendButton() {
+                const userInput = $("#user-input").val().trim(); // Trim removes leading and trailing whitespaces
+
+                // Enable the button if there is some non-whitespace input, otherwise disable it
+                $("#send").prop("disabled", userInput === '');
+            }
+
+            // Attach the toggleSendButton function to the input event of the user-input textarea
+            $("#user-input").on("input", toggleSendButton);
+
+            // Function to handle sending messages
+            async function handleSend() {
+                const userInput = $("#user-input").val();
+                $("#chat-messages").append(`<li><strong>You:</strong> ${userInput}</li>`);
+                $("#user-input").val('');
+
+                interact({ type: 'text', payload: userInput });
+
+                // Disable the "Send" button after sending the message
+                $("#send").prop("disabled", true);
+            }
+
+            // Attach the handleSend function to the click event of the "Send" button
+            $("#send").on("click", handleSend);
+        });
+
+       
+
+    </script>
+
+    <script>
+        function findMore() {
+            document.getElementById("user-input").value = "What Is Zakat, And It's Importance ";
+        }
+        function findMore2() {
+            document.getElementById("user-input").value = "What Are The Islamic Rules For Fasting";
+        }
+        function findMore3() {
+            document.getElementById("user-input").value = "Diffrence Between Jihad And Qital, n rules";
+        }
+        function findMore4() {
+            document.getElementById("user-input").value = "Proof, Of Hijab In Islam";
+        }
+    </script>
+<script>
+    // Function to close the overlay
+    function closeOverlay() {
+        document.getElementById('overlay').style.visibility = 'hidden';
+        // Set a cookie to remember that the overlay has been shown
+        document.cookie = 'overlayShown=true; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/';
+    }
+
+    // Function to check if the overlay should be shown
+    function shouldShowOverlay() {
+        return document.cookie.indexOf('overlayShown=true') === -1;
+    }
+
+    // Show the overlay when the page loads if not shown before
+    window.onload = function() {
+        if (shouldShowOverlay()) {
+            document.getElementById('overlay').style.visibility = 'visible';
+        }
+    };
+</script>
+
+    <script>
+        const API_KEY = "VF.DM.65ea6cbafb8b08d75f5efebe.yKbHvETObKMcrySg";
+
+        // Function to generate a random alphanumeric string
+        const generateRandomString = () => {
+            return Math.random().toString(36).substring(2);
+        };
+
+        // Function to fetch and display messages
+        const fetchAndDisplayMessages = () => {
+            const userID = "user_" + generateRandomString(); // Generate a unique userID
+            const request = { userID: userID }; // Include userID in the request
+            fetchChatMessages(request)
+                .then(displayMessages)
+                .catch(handleError);
+        };
+
+        // Function to fetch chat messages
+        const fetchChatMessages = (request) => {
+            const url = `https://general-runtime.voiceflow.com/state/user/${encodeURIComponent(request.userID)}/interact`;
+            const options = {
+                method: 'POST',
+                headers: { Authorization: API_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ request }),
+            };
+            return fetch(url, options)
+                .then(handleResponse)
+                .then((res) => res.json());
+        };
+
+        // Function to handle response from server
+        const handleResponse = (response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response;
+        };
+
+        // Function to display messages in the chat interface
+        const displayMessages = (trace) => {
+            trace.forEach((trace) => {
+                if (trace.type === 'speak' || trace.type === 'text') {
+                    $("#chat-messages").append(`<li>${trace.payload.message}</li>`);
+                } else if (trace.type === 'end') {
+                    $("#chat-messages").append(`<li><b>The End!</b></li>`);
+                }
+            });
+            $("#chat-messages").scrollTop($("#chat-messages")[0].scrollHeight);
+        };
+
+        // Function to handle errors
+        const handleError = (error) => {
+            console.error('Error:', error);
+            // Handle the error, for example, display an error message to the user
+            $("#chat-messages").append(`<li>Error: ${error.message}</li>`);
+        };
+    </script>
+</body>
+</html>
+
+   
+        
+    </body>
+  </html>
