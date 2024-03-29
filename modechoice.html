@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            background: rgb(184, 118, 235);
+            background: linear-gradient(105deg, rgba(184, 118, 235, 1) 0%, rgba(187, 180, 232, 1) 37%, rgba(180, 165, 236, 1) 100%);
+        }
+
+        #box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 90vh;
+            min-width: 70%;
+            margin-left: 5%;
+            margin-right: 5%;
+            margin-bottom: 10px;
+            border: 1px rgb(28, 28, 28);
+            background-color: rgba(123, 122, 117, 0.727);
+            padding-top: 20px;
+            border-radius: 6px;
+            box-shadow: 0px 0px 14px 2px rgb(74, 74, 73);
+            margin-top: 30px;
+        }
+
+        #size {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 90%;
+            margin-bottom: 10px;
+            flex-wrap: wrap; /* Allow items to wrap to the next line */
+            flex-direction: column; /* Set column layout for smaller screens */
+        }
+
+        img {
+            margin: 10px;
+            margin-left: 10px;
+            margin-right: 10px;
+            max-width: 93%; /* Set maximum width to 100% */
+            height: auto; /* Maintain aspect ratio */
+        }
+
+        #boxb,
+        #boxli {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 90%; /* Adjust width for smaller screens */
+            border-radius: 10px;
+            margin-bottom: 30px;
+            margin: 0 2%;
+        }
+
+        #boxb {
+            background-color: #262525;
+            color: aliceblue;
+            
+        }
+
+        #boxb:hover {
+            background-color: #343333;
+        }
+
+        #boxli {
+            background-color: rgb(231, 230, 230);
+        }
+
+        #boxli:hover {
+            background-color: rgb(215, 212, 212);
+        }
+
+        button {
+            margin: 20px; /* Reduce margin for smaller screens */
+            text-decoration: none;
+            background-color: rgba(87, 51, 153, 0.818);
+            font-size: 15px;
+            border: 1px #262525;
+            color: rgb(244, 246, 247);
+            min-width: 60px;
+            padding: 9px;
+            border-radius: 4px;
+            width: 80%; /* Set button width to 80% of the container */
+            box-sizing: border-box; /* Include padding and border in the width */
+        }
+
+        button:hover {
+            background-color: rgba(68, 31, 138, 0.818);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="box">
+        <div id="size">
+            <div id="boxli">
+                <h1>Light mode</h1>
+                <img src="Rectangle10.png" alt="" height="300">
+                <button onclick="changeLink()">Light Theme</button>
+            </div>
+            <div id="boxb">
+                <h1>Dark mode</h1>
+                <img src="Rectangle0.3.png" alt="" height="300">
+                <button onclick="changeLink2()">Dark Theme</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    function changeLink() {
+        var newLinkText = 'Chat';
+        var newHref = 'text.html';
+        localStorage.setItem('linkText', newLinkText); // Store link text in local storage
+        localStorage.setItem('linkHref', newHref); // Store link href in local storage
+        window.location.href = newHref;
+        // Update link text and href on Page One if it's open
+        var pageOneLink = window.opener.document.getElementById('link');
+        if (pageOneLink) {
+            pageOneLink.innerText = newLinkText;
+            pageOneLink.setAttribute('href', newHref);
+        }
+    }
+
+    function changeLink2() {
+        var newLinkText = 'Chat';
+        var newHref = 'chat2.html';
+        localStorage.setItem('linkText', newLinkText); // Store link text in local storage
+        localStorage.setItem('linkHref', newHref); // Store link href in local storage
+        // Update link text and href on Page One if it's open
+        window.location.href = newHref;
+        var pageOneLink = window.opener.document.getElementById('link');
+        if (pageOneLink) {
+            pageOneLink.innerText = newLinkText;
+            pageOneLink.setAttribute('href', newHref);
+        }
+    }
+</script>
+
+</html>
