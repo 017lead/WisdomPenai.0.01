@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    
+
     <script src="https://kit.fontawesome.com/d3c45e919b.js" crossorigin="anonymous"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@1,500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/ico" href="favicon2.ico">
-    <title>WisdomPen.com</title>
+    <title>MainWisdomPen.com</title>
     <style>
         * {
             padding: 0px;
@@ -65,8 +67,8 @@ overflow: auto;
             min-width: 490px;
             min-height: 6px;
             border-radius: 39px;
-            margin-right: 20px;
-            margin-left: 20px;            
+           margin-right: 20px;
+            margin-left: 20px;
             margin-bottom: 10px;
             padding-bottom: 20px;
             padding-top: 20px;
@@ -285,7 +287,7 @@ color: aliceblue;
         .twitter a {
 
             text-align: start;
-
+text-decoration: none;
 padding: 7px;
 margin-right: 20px;
 border-radius: 10px;
@@ -299,6 +301,18 @@ background-color: rgb(166, 166, 166);
         .twitter p{
             font-size: 12px;
             margin-bottom: 16px;
+        }
+        .twitter button{
+            margin-left: 10px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px rgb(28, 27, 27);
+            margin-right: 6px;
+            font-size: 10px;
+        }
+        .twitter button:hover{
+            background-color: #2554ac;
         }
         .last3{
             background-color: #2e2d29;
@@ -336,13 +350,63 @@ background-color: rgb(166, 166, 166);
             margin-left: 20px;
             margin-right: 20px;
           }
-header ul{
+         
+           header ul{
 min-width: 90%;
 margin-right: auto;
 margin-left: auto;
             }
         }
+
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const getStartedLink = document.getElementById('getStartedLink');
+    
+            // Function to handle the click event
+            function handleGetStartedClick(event) {
+                event.preventDefault();
+                const customInput = document.createElement('input');
+                customInput.setAttribute('type', 'text');
+                customInput.setAttribute('placeholder', 'Enter your preference (dark/light)');
+                const confirmButton = document.createElement('button');
+                confirmButton.textContent = 'Confirm';
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'Cancel';
+                const container = document.createElement('div');
+                container.appendChild(customInput);
+                container.appendChild(confirmButton);
+                container.appendChild(cancelButton);
+                const popup = window.open('', '_blank', 'width=400,height=200');
+                popup.document.body.appendChild(container);
+    
+                confirmButton.addEventListener('click', function() {
+                    const preference = customInput.value.trim().toLowerCase();
+                    if (preference === 'dark') {
+                        // Redirect to dark mode page
+                        window.location.href = 'dark_mode.html';
+                        popup.close();
+                    } else if (preference === 'light') {
+                        // Redirect to light mode page
+                        window.location.href = 'light_mode.html';
+                        popup.close();
+                    } else {
+                        // Invalid input
+                        alert("Invalid preference. Please enter 'dark' or 'light'.");
+                    }
+                });
+    
+                cancelButton.addEventListener('click', function() {
+                    popup.close();
+                });
+            }
+    
+            // Add event listener to the link
+            getStartedLink.addEventListener('click', handleGetStartedClick);
+        });
+    </script>
+    
+    
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
@@ -374,7 +438,7 @@ margin-left: auto;
     
         
        
-            <a href="Chat.html" target="_blank" class="submit-button">Start Now</a>
+        <a id="link" href="modechoice.html">View 1</a>
         
         
       </div>
@@ -408,9 +472,21 @@ else{
 }
 
 }
+
 </script>
     </section>
 </main>
+<script>
+    // Set link text and href based on values in localStorage
+    var storedLinkText = localStorage.getItem('linkText');
+    var storedHref = localStorage.getItem('linkHref');
+    if (storedLinkText) {
+        document.getElementById('link').innerText = storedLinkText;
+    }
+    if (storedHref) {
+        document.getElementById('link').setAttribute('href', storedHref);
+    }
+</script>
 
 <footer class="twitter">
 <div>
@@ -421,6 +497,7 @@ else{
     <a href="https://x.com/WisdomPenai/status/1751739551230410951?s=20">
         <i class="fa-brands fa-x-twitter"></i>
 </a>
+<a href="modechoice.html" style="font-size: 15px;">Chat Theme</a>
 </div>
 <a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
 </footer>
