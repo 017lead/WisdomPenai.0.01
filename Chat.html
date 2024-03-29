@@ -4,8 +4,9 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <meta charset="UTF-8">
+    <link rel="icon" type="image/ico" href="favicon2.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Page Title</title>
+    <title>WisdomPen.com </title>
     <style>
         * {
             margin: 0px;
@@ -28,6 +29,7 @@
             background-color: #fafafacc;
             
         }
+
         header h1{
             font-size: 30px;
             margin-top: 14px;
@@ -39,6 +41,59 @@
             margin-left: 80px;
             
         }
+        .dropbtn{
+            padding: 10px;
+            border-radius: 10px;
+            background-color: #e0dddd00;
+            border: none;
+            box-shadow: 0px 0px 4px 2px rgba(216, 214, 214, 0.81);
+        }
+        .dropdown {
+           position: relative;
+            display: inline-block;
+            margin-top: 13px;
+            
+            margin-right: 30px;
+            padding: 3px;
+          }
+          
+          /* Style for dropdown content */
+          .dropdown-content {
+            display: none;
+            position: absolute;
+            margin-bottom: 4px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+          }
+
+          /* Style for dropdown items */
+          .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 3px;
+            text-decoration: none;
+            display: block;
+          }
+          /* Change color of dropdown items on hover */
+          .dropdown-content a:hover {
+            background-color: #f1f1f1;
+          }
+          /* Show dropdown content on hover */
+          .dropdown:hover .dropdown-content {
+            display: block;
+          }
+          /* Position dropdown to the top right */
+          .dropdown-content {
+            right: 0;
+            top: 100%;
+           
+            border-radius: 10px;
+          }
+
         #Report{
             color: rgb(49, 49, 47);
             padding-right: 20px;
@@ -52,13 +107,12 @@
         
         #overlaybox{
             position: fixed;
-            bottom: 0; /* Position at the bottom */
-            left: 0; /* Align to the left */
-            right: 0; /* Align to the right */
             display: flex;
             align-items: center;
+            text-align: center;
             justify-content: center;
-            z-index: 2;
+             min-width: 100%;
+             min-height: 50px;
             
             
            
@@ -67,7 +121,7 @@
 
         }
         #overlaychat{
-            
+            position: fixed;
     display: flex;
     align-items: center;
     text-align: center;
@@ -93,9 +147,11 @@
         .chat-messages {
             flex-grow: 1;
             overflow: auto;
-            
+            color: #333;
             min-height: 90%;
-            background-image:linear-gradient(rgba(240, 234, 234, 0) 80%, rgba(231, 230, 230, 0.401));
+            
+            background-image:linear-gradient(rgba(240, 234, 234, 0) 80%, rgba(224, 218, 218, 0.401));
+           
             min-width: 90%;
             padding: 24px;
             box-sizing: border-box;
@@ -111,8 +167,10 @@
         #chat-messages li {
             margin: 5px;
             padding: 20px;
+            margin-bottom: 6px;
             line-height: 2.0;
             border-radius: 9px;
+            color: #000;
             background-color: #eeeaeaaf;
         }
         .send {
@@ -142,11 +200,11 @@
             flex: 1;
            min-width: 70%;
           font-family: Arial,sans-serif, "Gill Sans";
-            max-height: 80px;
+           max-height: 80px;
             outline: none;
             font-size: 1.1em;
             padding: 4px;
-            
+            color: #1a1919;
            border: none;
            background-color: #908a8a00;
             
@@ -235,6 +293,15 @@
             overflow: hidden;
             
         }
+        @media (min-height: 830px){
+            #overlaychat{
+                top: 730px;
+
+            }
+       
+       
+        
+        }
         @media (max-width: 570px){
             .user-input-container{
                 min-width: 99%;
@@ -248,10 +315,47 @@
         /* Responsive styles */
       
     </style>
+    <script>
+        function applyTheme() {
+            const isDarkMode = localStorage.getItem('isDarkMode') === 'true';
+    
+            const body = document.body;
+            const header = document.querySelector('header');
+            const main = document.querySelector('main');
+            // Add other elements you want to style for dark mode
+    
+            if (isDarkMode) {
+                body.classList.add('dark-mode');
+                header.classList.add('dark-mode');
+                main.classList.add('dark-mode');
+                // Add other elements to the dark mode class list
+            } else {
+                body.classList.remove('dark-mode');
+                header.classList.remove('dark-mode');
+                main.classList.remove('dark-mode');
+                // Remove other elements from the dark mode class list
+            }
+        }
+    </script>
 </head>
 <body>
     <header id="header">
-        <h1 class="test">Beta Testing: 0.5.0</h1>
+
+        <div class="dropdown">
+            <!-- Button to trigger dropdown -->
+            <button class="dropbtn">Settings</button>
+            <!-- Dropdown content -->
+            <div class="dropdown-content">
+              
+              <!-- Dark mode toggle -->
+            
+              <label for="dark-mode-toggle">Dark Mode</label>
+              <input type="checkbox" onclick="checkCondition()" id="dark-mode-toggle">
+             
+            </div>
+          </div>
+
+        <h1 class="test">Beta Testing: 0.5.9</h1>
 
         <a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
     
@@ -302,8 +406,6 @@
     
 
     </main>
-
-
     
     
 
