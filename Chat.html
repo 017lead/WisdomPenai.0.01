@@ -450,8 +450,39 @@ document.getElementById('user-input').addEventListener('input', function() {
             suggestionDiv.style.display = "none";
         }
     </script>
+<script>
+    var condition = true;
 
-    
+    function checkCondition() {
+        if (condition) {
+            window.location.href = 'text.html'; // Redirect to file1.html if condition is true
+        } else {
+            window.location.href = 'file2.html'; // Redirect to file2.html if condition is false
+        }
+    }
+
+        function findMore() {
+            document.getElementById("user-input").value = "What Is Zakat, And It's Importance ";
+        }
+
+        function findMore2() {
+            document.getElementById("user-input").value = "What Are The Islamic Rules For Fasting";
+        }
+
+        function findMore3() {
+            document.getElementById("user-input").value = "Difference Between Jihad And Qital, and rules";
+        }
+
+        function findMore4() {
+            document.getElementById("user-input").value = "Proof of Hijab In Islam";
+        }
+        function submitForm() {
+            var suggestionDiv = document.getElementById("suggust");
+            var userInput = document.getElementById("user-input").value;
+            // Hide the suggestion div
+            suggestionDiv.style.display = "none";
+        }
+    </script>    
 
     <script>
         const chatOverlay2 = document.getElementById('chat-container');
