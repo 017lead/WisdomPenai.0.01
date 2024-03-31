@@ -520,46 +520,17 @@ document.getElementById('user-input').addEventListener('input', function() {
     };
 </script>
 
-    <script>
-        const API_KEY = "VF.DM.65ea6cbafb8b08d75f5efebe.yKbHvETObKMcrySg";
+<script>
+    const API_KEY = "VF.DM.65ea6cbafb8b08d75f5efebe.yKbHvETObKMcrySg";
 
-        // Function to generate a random alphanumeric string
-        const generateRandomString = () => {
-            return Math.random().toString(36).substring(2);
-        };
-
-        // Function to fetch and display messages
-        const fetchAndDisplayMessages = () => {
-            const userID = "user_" + generateRandomString(); // Generate a unique userID
-            const request = { userID: userID }; // Include userID in the request
-            fetchChatMessages(request)
-                .then(displayMessages)
-                .catch(handleError);
-        };
-
-        // Function to fetch chat messages
-        const fetchChatMessages = (request) => {
-            const url = `https://general-runtime.voiceflow.com/state/user/${encodeURIComponent(request.userID)}/interact`;
-            const options = {
-                method: 'POST',
-                headers: { Authorization: API_KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ request }),
-            };
-            return fetch(url, options)
-                .then(handleResponse)
-                .then((res) => res.json());
-        };
-
-        // Function to handle response from server
-        const handleResponse = (response) => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response;
-        };
-
-        // Function to display messages in the chat interface
-        const displayMessages = (trace) => {
+    const interact = (request) =>
+        fetch(`https://general-runtime.voiceflow.com/state/user/${encodeURI($("#name").val())}/interact`, {
+            method: 'POST',
+            headers: { Authorization: API_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request }),
+        })
+        .then((res) => res.json())
+        .then((trace) => {
             trace.forEach((trace) => {
                 if (trace.type === 'speak' || trace.type === 'text') {
                     $("#chat-messages").append(`<li>${trace.payload.message}</li>`);
@@ -568,15 +539,14 @@ document.getElementById('user-input').addEventListener('input', function() {
                 }
             });
             $("#chat-messages").scrollTop($("#chat-messages")[0].scrollHeight);
-        };
+        });
 
-        // Function to handle errors
-        const handleError = (error) => {
-            console.error('Error:', error);
-            // Handle the error, for example, display an error message to the user
-            $("#chat-messages").append(`<li>Error: ${error.message}</li>`);
-        };
-    </script>
+    
+   
+
+    
+</script>
+
 </body>
 </html>
 
