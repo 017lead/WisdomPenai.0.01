@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,12 +35,28 @@
             font-size: 30px;
             margin-top: 14px;
             margin-bottom: 7px;
-            color: rgb(244, 239, 239);
+            color: rgb(236, 233, 233);
             
         }
         header a{
             margin-top: 10px;
             margin-left: 10px;
+        }
+        .language-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            background-color: #ecebcf1c;
+            color: rgb(109, 106, 106);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+        }
+        .language-toggle:hover {
+            background-color: #342a39;
         }
        
         #Report{
@@ -61,8 +76,8 @@
             align-items: center;
             text-align: center;
             justify-content: center;
-             min-width: 100%;
-             min-height: 50px;
+            width: 100%;
+            max-width: 600px;
             
             
            
@@ -72,21 +87,21 @@
         }
         #overlaychat {
             position: fixed;
-            bottom: 10px;
-            left: 10px;
-            right: 10px;
+            bottom: 60px;
+            left: 58px;
+            right: 58px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            background-color: #312f2fc6;
+            justify-content: space-between;
+            background-color: #312f2fcd;
             backdrop-filter: blur(1.5px);
-            box-shadow: 0px 0px 4px rgb(63, 62, 62);
-            padding: 10px;
+            box-shadow: 0px 0px 4px rgb(78, 77, 77);
+            padding: 12px;
             
-            border-radius: 10px;
+            border-radius: 25px;
             z-index: 9999; /* Ensure it's on top of other elements */
-            max-height: 80px; /* Adjust this value to control the maximum height */
-            overflow-y: auto; /* Enable vertical scrolling if content exceeds max-height */
+             /* Adjust this value to control the maximum height */
+            overflow-y: hidden; /* Enable vertical scrolling if content exceeds max-height */
           }
        #underlay{
         position: fixed;
@@ -138,23 +153,55 @@
             
         }
 
-        #chat-messages li {
-            margin: 5px;
-            padding: 20px;
-            margin-bottom: 6px;
-            line-height: 2.0;
-            border-radius: 9px;
-            color: #eee8e8;
-            background-color: #494747af;
-        }
+        /* Styling for chat bubbles */
+.chat-messages li {
+    margin: 5px;
+    padding: 15px 20px;
+    max-width: 80%;
+    border-radius: 12px;
+    line-height: 1.5;
+    color: #fff;
+    font-size: 16px;
+}
+
+/* User message styling */
+.chat-messages .user-message {
+    background-color: #4c4c4c;
+    text-align: right;
+    margin-left: auto;
+    border-radius: 10px 10px 0 10px;
+}
+
+/* Assistant message styling */
+.chat-messages .assistant-message {
+    background-color: #2b2e40;
+    border-radius: 10px 10px 10px 0;
+    text-align: left;
+}
+
+/* General chat container styling */
+#chat-messages {
+    padding: 20px;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.13);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    height: 60vh;
+    overflow-y: auto;
+    flex-direction: column;
+    display: flex;
+}
+
         .send {
-            height: 37px;
-            width: 50px;
+            height: 50px;
+            width: 54px;
             background-color: #274525;
             color: #fff;
+            
+
+           
             text-align: center;
             border: none;
-            border-radius: 6px;
+            border-radius: 12px;
             margin-left: 9px;
             margin-right: 9px;
             cursor: pointer;
@@ -167,9 +214,18 @@
         }
         .user-input {
             flex: 1;
-            min-width: 70%;
+           
             font-family: Arial, sans-serif, "Gill Sans";
-            max-height: 80px;
+            width: 100%;
+            min-height: 50px;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            line-height: 1.5;
+            overflow: hidden;
+            resize: none;
             outline: none;
             font-size: 1.1em;
             padding: 4px;
@@ -177,9 +233,7 @@
             border: none;
             background-color: transparent;
             transition: 0.1s ease;
-            resize: vertical; /* Allow vertical resizing */
-            overflow-y: auto; /* Enable vertical scrolling if content exceeds max-height */
-            box-sizing: border-box;
+            
           }
       
        
@@ -192,7 +246,7 @@
             
             background-color: #fafafa00;
            
-            overflow: hidden;
+             overflow-y: hidden;
             
            
             padding: 10px;
@@ -270,8 +324,8 @@
 <body>
     <header id="header">
        
-
-        <h1 class="test">Beta Testing: 0.5.9</h1>
+        <button id="languageToggle" class="language-toggle">عربي</button>
+        <h1 class="test">Beta Testing: 0.7.9</h1>
         <a id="Report" href="https://forms.gle/oNUpVPp7xvdY8JvM9" target="_blank">Report a bug</a>
     
         
@@ -288,6 +342,8 @@
                <ul class="chat-messages" id="chat-messages">
                    <!-- Chat messages will be added dynamically using JavaScript -->
                </ul>
+
+
 
                <div class="user-input-container">
                 
@@ -311,19 +367,17 @@
   </div>
 -->
 <div>
+    
      <div id="overlaybox" >
+        
      <div id="overlaychat">
      <textarea class="user-input" id="user-input" placeholder="Type Your Questions Here.."></textarea>
-
-     <button  class="send" id="send">Find</button>
-     
-    
-
-    
+     <button class="send" id="send">Find</button>
    
     </div>
+    
     </div>
-   
+  
     </main>
 
 
@@ -352,12 +406,65 @@
         window.addEventListener('load', checkUserPreference);
     </script>
 
+
    <script>
 document.getElementById('user-input').addEventListener('input', function() {
         this.style.height = 'auto'; // Reset height to auto to calculate new height
         this.style.height = (this.scrollHeight <= 80 ? this.scrollHeight : 80) + 'px'; // Set height to new calculated height, with maximum of 80px
     });
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const languageToggle = document.getElementById('languageToggle');
+    const chatContainer = document.querySelector('.chat-container');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send'); // Assuming the Find button has id="send"
+    const testElement = document.querySelector('.test'); // Assuming the Beta Testing text has class="test"
+
+    let isArabic = false;
+
+    languageToggle.addEventListener('click', function() {
+        isArabic = !isArabic;
+        if (isArabic) {
+            chatContainer.classList.add('rtl');
+            sendButton.textContent = 'ابحث'; // Change "Find" to Arabic
+            testElement.textContent = 'اختبار تجريبي: 0.7.9'; // Change Beta Testing text to Arabic
+            userInput.setAttribute('placeholder', 'اكتب سؤالك هنا...');
+            languageToggle.textContent = 'English';
+            // Change other text elements to Arabic
+            document.querySelectorAll('.chat-messages li').forEach(li => {
+                if (li.textContent.includes('You:')) {
+                    li.textContent = li.textContent.replace('You:', 'أنت:');
+                }
+                // Add more text replacements as needed
+            });
+        } else {
+            chatContainer.classList.remove('rtl');
+            sendButton.textContent = 'Find'; // Change back to English
+            testElement.textContent = 'Beta Testing: 0.7.9'; // Change back to English
+            userInput.setAttribute('placeholder', 'Type Your Questions Here..');
+            languageToggle.textContent = 'عربي';
+            // Change text elements back to English
+            document.querySelectorAll('.chat-messages li').forEach(li => {
+                if (li.textContent.includes('أنت:')) {
+                    li.textContent = li.textContent.replace('أنت:', 'You:');
+                }
+                // Add more text replacements as needed
+            });
+        }
+    });
+});
+</script>
+<script>
+    const textarea = document.getElementById('user-input');
+
+    textarea.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+</script>
+
 <script>
     var condition = true;
 
@@ -500,40 +607,67 @@ document.getElementById('user-input').addEventListener('input', function() {
     };
 </script>
 <script>
-// Generate a random user ID
-function generateUserID() {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let userID = '';
-  for (let i = 0; i < 12; i++) {
-    userID += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return userID;
+const chatbox = document.getElementById('chat-messages');
+const userInput = document.getElementById('user-input');
+const sendButton = document.getElementById('send');
+
+function addMessage(sender, message, isUser = false) {
+    const messageElement = document.createElement('li');
+    
+    // Apply different classes based on who the sender is
+    if (isUser) {
+        messageElement.classList.add('user-message');
+    } else {
+        messageElement.classList.add('WisdomPen:');
+    }
+    messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+    chatbox.appendChild(messageElement);
+    
+    // Scroll to the latest message
+    chatbox.scrollTop = chatbox.scrollHeight;
+    return messageElement;
 }
 
-// API key
-const API_KEY = "VF.DM.65ea6cbafb8b08d75f5efebe.yKbHvETObKMcrySg";
+async function sendMessage() {
+    const message = userInput.value.trim();
+    if (message) {
+        addMessage('You', message, true); // user message
+        userInput.value = '';
+        sendButton.disabled = true;
+        userInput.disabled = true;
+        const assistantMessage = addMessage('Assistant', '<span class="typing">Typing...</span>', false);
+        let assistantResponse = '';
+        const eventSource = new EventSource(`http://localhost:3000/chat?message=${encodeURIComponent(message)}`);
+        eventSource.onmessage = function(event) {
+            if (event.data === '[END]') {
+                eventSource.close();
+                sendButton.disabled = false;
+                userInput.disabled = false;
+            } else {
+                assistantResponse += event.data + ' ';
+                assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse}`;
+                chatbox.scrollTop = chatbox.scrollHeight;
+            }
+        };
+        eventSource.onerror = function(error) {
+            console.error('EventSource failed:', error);
+            eventSource.close();
+            assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
+            sendButton.disabled = false;
+            userInput.disabled = false;
+        };
+    }
+}
 
-        const interact = (request) =>
-            fetch(`https://general-runtime.voiceflow.com/state/user/${encodeURI($("#name").val())}/interact`, {
-                method: 'POST',
-                headers: { Authorization: API_KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ request }),
-            })
-            .then((res) => res.json())
-            .then((trace) => {
-                trace.forEach((trace) => {
-                    if (trace.type === 'speak' || trace.type === 'text') {
-                        $("#chat-messages").append(`<li>${trace.payload.message}</li>`);
-                    } else if (trace.type === 'end') {
-                        $("#chat-messages").append(`<li><b>The End!</b></li>`);
-                    }
-                });
-                $("#chat-messages").scrollTop($("#chat-messages")[0].scrollHeight);
-            });
-
-// Example usage
-
+sendButton.addEventListener('click', sendMessage);
+userInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
 </script>
+
+
 </body>
 </html>
 
@@ -541,3 +675,4 @@ const API_KEY = "VF.DM.65ea6cbafb8b08d75f5efebe.yKbHvETObKMcrySg";
         
     </body>
   </html>
+ 
