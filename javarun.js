@@ -16,7 +16,13 @@ const port = 3000;
 app.use(express.json());
 app.use(cors());
 
-const openai = new OpenAI(process.env.OPENAI_API_KEY);
+const apiKey = process.env.OPENAI_API_KEY;
+if (!apiKey) {
+  console.error('OPENAI_API_KEY is not set in the environment');
+  process.exit(1);
+}
+
+const openai = new OpenAI({ apiKey });
 
 let assistant;
 let thread;

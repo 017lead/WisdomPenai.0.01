@@ -18,7 +18,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 90vh;
+            min-height: 100vh;
             min-width: 70%;
             margin-left: 5%;
             margin-right: 5%;
@@ -36,7 +36,7 @@
             justify-content: center;
             align-items: center;
             width: 90%;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
             flex-wrap: wrap; /* Allow items to wrap to the next line */
             flex-direction: column; /* Set column layout for smaller screens */
         }
@@ -57,7 +57,8 @@
             align-items: center;
             width: 90%; /* Adjust width for smaller screens */
             border-radius: 10px;
-            margin-bottom: 30px;
+            margin-top: 30px;
+           
             margin: 0 2%;
         }
 
@@ -92,6 +93,10 @@
             width: 80%; /* Set button width to 80% of the container */
             box-sizing: border-box; /* Include padding and border in the width */
         }
+        hr{
+            width: 240px;
+            color: rgb(217, 230, 241);
+        }
 
         button:hover {
             background-color: rgba(68, 31, 138, 0.818);
@@ -107,6 +112,7 @@
                 <img src="Rectangle10.png" alt="" height="300">
                 <button onclick="changeLink()">Light Theme</button>
             </div>
+            <hr>
             <div id="boxb">
                 <h1>Dark mode</h1>
                 <img src="Rectangle0.3.png" alt="" height="300">
@@ -118,8 +124,8 @@
 
 <script>
     function changeLink() {
-        var newLinkText = 'Start';
-        var newHref = 'Chat.html';
+        var newLinkText = 'Chat';
+        var newHref = 'text.html';
         localStorage.setItem('linkText', newLinkText); // Store link text in local storage
         localStorage.setItem('linkHref', newHref); // Store link href in local storage
         window.location.href = newHref;
@@ -129,10 +135,17 @@
             pageOneLink.innerText = newLinkText;
             pageOneLink.setAttribute('href', newHref);
         }
+        var chatWindow = window.open('text.html');
+        chatWindow.onload = function() {
+            var chatMessages = chatWindow.document.getElementsByClassName('chat-messages');
+            for (var i = 0; i < chatMessages.length; i++) {
+                chatMessages[i].style.backgroundImage = 'linear-gradient(rgba(0, 0, 0, 0.8) 80%, rgba(0, 0, 0, 0.8))';
+            }
+        }
     }
 
     function changeLink2() {
-        var newLinkText = 'Start';
+        var newLinkText = 'Chat';
         var newHref = 'chat2.html';
         localStorage.setItem('linkText', newLinkText); // Store link text in local storage
         localStorage.setItem('linkHref', newHref); // Store link href in local storage
@@ -145,5 +158,4 @@
         }
     }
 </script>
-
 </html>

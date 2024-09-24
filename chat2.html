@@ -607,64 +607,73 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 </script>
 <script>
-const chatbox = document.getElementById('chat-messages');
-const userInput = document.getElementById('user-input');
-const sendButton = document.getElementById('send');
+    const chatbox = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send');
 
-function addMessage(sender, message, isUser = false) {
-    const messageElement = document.createElement('li');
-    
-    // Apply different classes based on who the sender is
-    if (isUser) {
-        messageElement.classList.add('user-message');
-    } else {
-        messageElement.classList.add('WisdomPen:');
+    function addMessage(sender, message, isUser = false) {
+        if (message.trim() !== '') {
+            const messageElement = document.createElement('li');
+            messageElement.classList.add(isUser ? 'user-message' : 'assistant-message');
+            messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            chatbox.appendChild(messageElement);
+            chatbox.scrollTop = chatbox.scrollHeight;
+            return messageElement;
+        }
+        return null;
     }
-    messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
-    chatbox.appendChild(messageElement);
-    
-    // Scroll to the latest message
-    chatbox.scrollTop = chatbox.scrollHeight;
-    return messageElement;
-}
 
-async function sendMessage() {
-    const message = userInput.value.trim();
-    if (message) {
-        addMessage('You', message, true); // user message
-        userInput.value = '';
-        sendButton.disabled = true;
-        userInput.disabled = true;
-        const assistantMessage = addMessage('Assistant', '<span class="typing">Typing...</span>', false);
-        let assistantResponse = '';
-        const eventSource = new EventSource(`http://localhost:3000/chat?message=${encodeURIComponent(message)}`);
-        eventSource.onmessage = function(event) {
-            if (event.data === '[END]') {
-                eventSource.close();
+    async function sendMessage() {
+        const message = userInput.value.trim();
+        if (message) {
+            addMessage('You', message, true);
+            userInput.value = '';
+            sendButton.disabled = true;
+            userInput.disabled = true;
+
+            const assistantMessage = addMessage('Assistant', '<span class="typing">Typing...</span>', false);
+            let assistantResponse = '';
+
+            try {
+                const eventSource = new EventSource(`http://localhost:3000/chat?message=${encodeURIComponent(message)}`);
+                eventSource.onmessage = function(event) {
+                    if (event.data === '[END]') {
+                        eventSource.close();
+                        assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse.trim()}`;
+                        sendButton.disabled = false;
+                        userInput.disabled = false;
+                    } else {
+                        assistantResponse += event.data + ' ';
+                        assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse}`;
+                    }
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                };
+                eventSource.onerror = function(error) {
+                    console.error('EventSource failed:', error);
+                    eventSource.close();
+                    assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
+                    sendButton.disabled = false;
+                    userInput.disabled = false;
+                };
+            } catch (error) {
+                console.error('Error:', error);
+                assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
                 sendButton.disabled = false;
                 userInput.disabled = false;
-            } else {
-                assistantResponse += event.data + ' ';
-                assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse}`;
-                chatbox.scrollTop = chatbox.scrollHeight;
             }
-        };
-        eventSource.onerror = function(error) {
-            console.error('EventSource failed:', error);
-            eventSource.close();
-            assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
-            sendButton.disabled = false;
-            userInput.disabled = false;
-        };
+        }
     }
-}
 
-sendButton.addEventListener('click', sendMessage);
-userInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        sendMessage();
-    }
-});
+    sendButton.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // Initial message from the assistant
+    addMessage('Assistant', 'Assalamu alaikum! How can I assist you today?', false);
 </script>
 
 

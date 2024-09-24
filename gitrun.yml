@@ -9,12 +9,17 @@ on:
 jobs:
   run-script:
     runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
     steps:
     - uses: actions/checkout@v3
     - name: Use Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: '14'
-        run: npm install
+        node-version: '18'
+    - run: npm install
     - run: node javarun.js
+
+
+  
