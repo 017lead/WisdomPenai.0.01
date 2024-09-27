@@ -29,7 +29,7 @@ exports.handler = async function(event, context) {
         name: "Wisdom Pen Islamic AI",
         instructions: "You are an AI assistant specializing in Islamic teachings, including the Quran, Bible, Torah, and Hadiths. Always greet the user with 'Assalamu alaikum' (Peace be upon you).",
         tools: [{ type: "code_interpreter" }],
-        model: "gpt-4-turbo-preview"
+        model: "gpt-4o-mini"
       });
     }
 
