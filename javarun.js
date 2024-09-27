@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(cors());
 
 // CAUTION: Embedding API keys directly in code is not secure for production use
-const apiKey = "your-api-key-here";  // Replace with your actual OpenAI API key
+const apiKey = "sk-Q1h3GOSsntB7gGAKTiViZZixamlBAwEtmCyQpC0tUcT3BlbkFJh1wXqOU8Hoe6GxxhdmHOhqmcgudci6wGOPp3YArJQA";  // Replace with your actual OpenAI API key
 
 const openai = new OpenAI({ apiKey });
 
