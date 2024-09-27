@@ -1,20 +1,24 @@
 import express from 'express';
 import OpenAI from "openai";
+import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
 import cors from 'cors';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const filename = fileURLToPath(import.meta.url);
+const dir = dirname(filename); // renamed to avoid redeclaration
+dotenv.config({ path: join(dir, '.env') });
 
 const app = express();
 const port = 3000;
-
 app.use(express.json());
 app.use(cors());
 
-// CAUTION: Embedding API keys directly in code is not secure for production use
-const apiKey = "sk-Q1h3GOSsntB7gGAKTiViZZixamlBAwEtmCyQpC0tUcT3BlbkFJh1wXqOU8Hoe6GxxhdmHOhqmcgudci6wGOPp3YArJQA";  // Replace with your actual OpenAI API key
+const apiKey = process.env.OPENAI_API_KEY;
+if (!apiKey) {
+  console.error('OPENAI_API_KEY is not set in the environment');
+  process.exit(1);
+}
 
 const openai = new OpenAI({ apiKey });
 
@@ -34,7 +38,7 @@ app.get('/chat', async (req, res) => {
         name: "Wisdom Pen Islamic AI",
         instructions: "You are an AI assistant specializing in Islamic teachings, including the Quran, Bible, Torah, and Hadiths. Always greet the user with 'Assalamu alaikum' (Peace be upon you).",
         tools: [{ type: "code_interpreter" }],
-        model: "gpt-4-turbo-preview"  // Changed from "gpt-4o-mini" which is not a valid model name
+        model: "gpt-4o-mini"
       });
     }
 
@@ -43,40 +47,48 @@ app.get('/chat', async (req, res) => {
     }
 
     const userMessage = req.query.message;
-    await openai.beta.threads.messages.create(
-      thread.id,
-      {
-        role: "user",
-        content: userMessage
-      }
-    );
+    
+    // Send user message to the thread
+    await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: userMessage
+    });
 
-    const run = await openai.beta.threads.runs.create(
-      thread.id,
-      { assistant_id: assistant.id }
-    );
+    // Create a run for the assistant to process the message
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistant.id
+    });
 
     while (true) {
       const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
       if (runStatus.status === 'completed') {
         const messages = await openai.beta.threads.messages.list(thread.id);
-        const response = messages.data[0].content[0].text.value;
+
+        // Get the last assistant message
+        const assistantMessage = messages.data
+          .filter(msg => msg.role === "assistant")
+          .pop(); // Get the latest assistant message
         
-        // Send the response word by word
+        const response = assistantMessage.content[0].text.value;
+
+        // Stream the response word by word
         const words = response.split(' ');
         for (let word of words) {
           res.write(`data: ${word}\n\n`);
-          await new Promise(resolve => setTimeout(resolve, 100)); // Add a small delay between words
+          await new Promise(resolve => setTimeout(resolve, 100)); // Delay between words
         }
-        res.write(`data: [END]\n\n`);
+
+        res.write('data: [END]\n\n'); // Mark the end of the stream
         break;
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Check every second for completion
     }
+
     res.end();
+
   } catch (error) {
     console.error("An error occurred:", error);
-    res.write(`data: An error occurred while processing your request.\n\n`);
+    res.write('data: An error occurred while processing your request.\n\n');
     res.end();
   }
 });
@@ -84,3 +96,4 @@ app.get('/chat', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+
