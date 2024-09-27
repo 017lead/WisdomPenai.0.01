@@ -1,27 +1,32 @@
-import OpenAI from 'openai';
-import dotenv from 'dotenv';
+import express from 'express';
+import OpenAI from "openai";
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
+import cors from 'cors';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-dotenv.config({ path: join(__dirname, '.env') });
 
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) {
-  console.error('OPENAI_API_KEY is not set in the environment');
-  process.exit(1);
-}
+const app = express();
+const port = 3000;
+
+app.use(express.json());
+app.use(cors());
+
+// CAUTION: Embedding API keys directly in code is not secure for production use
+const apiKey = "your-api-key-here";  // Replace with your actual OpenAI API key
 
 const openai = new OpenAI({ apiKey });
 
 let assistant;
 let thread;
 
-exports.handler = async function(event, context) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
+app.get('/chat', async (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
 
   try {
     if (!assistant) {
@@ -29,7 +34,7 @@ exports.handler = async function(event, context) {
         name: "Wisdom Pen Islamic AI",
         instructions: "You are an AI assistant specializing in Islamic teachings, including the Quran, Bible, Torah, and Hadiths. Always greet the user with 'Assalamu alaikum' (Peace be upon you).",
         tools: [{ type: "code_interpreter" }],
-        model: "gpt-4o-mini"
+        model: "gpt-4-turbo-preview"  // Changed from "gpt-4o-mini" which is not a valid model name
       });
     }
 
@@ -37,13 +42,12 @@ exports.handler = async function(event, context) {
       thread = await openai.beta.threads.create();
     }
 
-    const { message } = JSON.parse(event.body);
-
+    const userMessage = req.query.message;
     await openai.beta.threads.messages.create(
       thread.id,
       {
         role: "user",
-        content: message
+        content: userMessage
       }
     );
 
@@ -52,26 +56,31 @@ exports.handler = async function(event, context) {
       { assistant_id: assistant.id }
     );
 
-    let response = '';
     while (true) {
       const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
       if (runStatus.status === 'completed') {
         const messages = await openai.beta.threads.messages.list(thread.id);
-        response = messages.data[0].content[0].text.value;
+        const response = messages.data[0].content[0].text.value;
+        
+        // Send the response word by word
+        const words = response.split(' ');
+        for (let word of words) {
+          res.write(`data: ${word}\n\n`);
+          await new Promise(resolve => setTimeout(resolve, 100)); // Add a small delay between words
+        }
+        res.write(`data: [END]\n\n`);
         break;
       }
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: response }),
-    };
+    res.end();
   } catch (error) {
-    console.error('Error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'An error occurred while processing your request.' }),
-    };
+    console.error("An error occurred:", error);
+    res.write(`data: An error occurred while processing your request.\n\n`);
+    res.end();
   }
-};
+});
+
+app.listen(port, () => {
+  console.log(`Server running at http://localhost:${port}`);
+});
