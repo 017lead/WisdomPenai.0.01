@@ -635,8 +635,17 @@ document.addEventListener('DOMContentLoaded', function() {
         let assistantResponse = '';
 
         try {
-            const eventSource = new EventSource(`https://wisdompenai-0-01.onrender.com/chat?message=${encodeURIComponent(message)}`);
+            const backendUrl = 'https://wisdompenai-0-01.onrender.com';
+            console.log(`Connecting to backend at: ${backendUrl}`);
+            
+            const eventSource = new EventSource(`${backendUrl}/chat?message=${encodeURIComponent(message)}`);
+            
+            eventSource.onopen = function(event) {
+                console.log('Connection to server opened.');
+            };
+
             eventSource.onmessage = function(event) {
+                console.log('Received message:', event.data);
                 if (event.data === '[END]') {
                     eventSource.close();
                     assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse.trim()}`;
@@ -648,6 +657,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 chatbox.scrollTop = chatbox.scrollHeight;
             };
+
             eventSource.onerror = function(error) {
                 console.error('EventSource failed:', error);
                 eventSource.close();
