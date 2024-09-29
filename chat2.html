@@ -623,46 +623,46 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     }
 
-    async function sendMessage() {
-        const message = userInput.value.trim();
-        if (message) {
-            addMessage('You', message, true);
-            userInput.value = '';
-            sendButton.disabled = true;
-            userInput.disabled = true;
+   async function sendMessage() {
+    const message = userInput.value.trim();
+    if (message) {
+        addMessage('You', message, true);
+        userInput.value = '';
+        sendButton.disabled = true;
+        userInput.disabled = true;
 
-            const assistantMessage = addMessage('Assistant', '<span class="typing">Typing...</span>', false);
-            let assistantResponse = '';
+        const assistantMessage = addMessage('Assistant', '<span class="typing">Typing...</span>', false);
+        let assistantResponse = '';
 
-            try {
-                const eventSource = new EventSource(`http://localhost:3000/chat?message=${encodeURIComponent(message)}`);
-                eventSource.onmessage = function(event) {
-                    if (event.data === '[END]') {
-                        eventSource.close();
-                        assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse.trim()}`;
-                        sendButton.disabled = false;
-                        userInput.disabled = false;
-                    } else {
-                        assistantResponse += event.data + ' ';
-                        assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse}`;
-                    }
-                    chatbox.scrollTop = chatbox.scrollHeight;
-                };
-                eventSource.onerror = function(error) {
-                    console.error('EventSource failed:', error);
+        try {
+            const eventSource = new EventSource(`https://wisdompenai-0-01.onrender.com/chat?message=${encodeURIComponent(message)}`);
+            eventSource.onmessage = function(event) {
+                if (event.data === '[END]') {
                     eventSource.close();
-                    assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
+                    assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse.trim()}`;
                     sendButton.disabled = false;
                     userInput.disabled = false;
-                };
-            } catch (error) {
-                console.error('Error:', error);
+                } else {
+                    assistantResponse += event.data + ' ';
+                    assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse}`;
+                }
+                chatbox.scrollTop = chatbox.scrollHeight;
+            };
+            eventSource.onerror = function(error) {
+                console.error('EventSource failed:', error);
+                eventSource.close();
                 assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
                 sendButton.disabled = false;
                 userInput.disabled = false;
-            }
+            };
+        } catch (error) {
+            console.error('Error:', error);
+            assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
+            sendButton.disabled = false;
+            userInput.disabled = false;
         }
     }
+}
 
     sendButton.addEventListener('click', sendMessage);
     userInput.addEventListener('keypress', (e) => {
