@@ -4,13 +4,16 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
+import fetch from 'node-fetch';
 
-const filename = fileURLToPath(import.meta.url);
-const dir = dirname(filename); // renamed to avoid redeclaration
-dotenv.config({ path: join(dir, '.env') });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '.env') });
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+
 app.use(express.json());
 app.use(cors());
 
@@ -38,7 +41,7 @@ app.get('/chat', async (req, res) => {
         name: "Wisdom Pen Islamic AI",
         instructions: "You are an AI assistant specializing in Islamic teachings, including the Quran, Bible, Torah, and Hadiths. Always greet the user with 'Assalamu alaikum' (Peace be upon you).",
         tools: [{ type: "code_interpreter" }],
-        model: "gpt-4o-mini"
+        model: "gpt-4-1106-preview"
       });
     }
 
@@ -47,53 +50,42 @@ app.get('/chat', async (req, res) => {
     }
 
     const userMessage = req.query.message;
-    
-    // Send user message to the thread
-    await openai.beta.threads.messages.create(thread.id, {
-      role: "user",
-      content: userMessage
-    });
+    await openai.beta.threads.messages.create(
+      thread.id,
+      {
+        role: "user",
+        content: userMessage
+      }
+    );
 
-    // Create a run for the assistant to process the message
-    const run = await openai.beta.threads.runs.create(thread.id, {
-      assistant_id: assistant.id
-    });
+    const run = await openai.beta.threads.runs.create(
+      thread.id,
+      { assistant_id: assistant.id }
+    );
 
     while (true) {
       const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
       if (runStatus.status === 'completed') {
         const messages = await openai.beta.threads.messages.list(thread.id);
-
-        // Get the last assistant message
-        const assistantMessage = messages.data
-          .filter(msg => msg.role === "assistant")
-          .pop(); // Get the latest assistant message
-        
-        const response = assistantMessage.content[0].text.value;
-
-        // Stream the response word by word
+        const response = messages.data[0].content[0].text.value;
         const words = response.split(' ');
         for (let word of words) {
           res.write(`data: ${word}\n\n`);
-          await new Promise(resolve => setTimeout(resolve, 100)); // Delay between words
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
-
-        res.write('data: [END]\n\n'); // Mark the end of the stream
+        res.write(`data: [END]\n\n`);
         break;
       }
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Check every second for completion
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-
     res.end();
-
   } catch (error) {
     console.error("An error occurred:", error);
-    res.write('data: An error occurred while processing your request.\n\n');
+    res.write(`data: An error occurred while processing your request.\n\n`);
     res.end();
   }
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
-
