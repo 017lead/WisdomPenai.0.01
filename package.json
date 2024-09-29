@@ -1,21 +1,19 @@
 {
-  "name": "gpt3api",
+  "name": "wisdom-pen-islamic-ai",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "build": "echo 'No build necessary",
-
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
+  "description": "Islamic AI assistant using OpenAI API",
+  "main": "server.js",
   "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": "14.x"
+  },
   "dependencies": {
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.0",
-    "openai": "^4.63.0"
+    "express": "^4.17.1",
+    "openai": "^4.0.0",
+    "dotenv": "^10.0.0",
+    "cors": "^2.8.5"
   }
 }
