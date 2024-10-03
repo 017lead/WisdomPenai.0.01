@@ -8,8 +8,9 @@
     "start": "node javarun.js"
   },
   "engines": {
-    "node": "16.x"
-  },
+  "node": ">=16.x"
+}
+
   "dependencies": {
     "express": "^4.17.1",
     "openai": "^4.0.0",
