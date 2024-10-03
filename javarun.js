@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
+import fetch from 'node-fetch';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -11,7 +12,7 @@ const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '.env') });
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 10000;
 
 app.use(express.json());
 app.use(cors());
@@ -40,7 +41,7 @@ app.get('/chat', async (req, res) => {
         name: "Wisdom Pen Islamic AI",
         instructions: "You are an AI assistant specializing in Islamic teachings, including the Quran, Bible, Torah, and Hadiths. Always greet the user with 'Assalamu alaikum' (Peace be upon you).",
         tools: [{ type: "code_interpreter" }],
-        model: "gpt-4o-mini"
+        model: "gpt-4-1106-preview"
       });
     }
 
@@ -67,19 +68,16 @@ app.get('/chat', async (req, res) => {
       if (runStatus.status === 'completed') {
         const messages = await openai.beta.threads.messages.list(thread.id);
         const response = messages.data[0].content[0].text.value;
-        
-        // Send the response word by word
         const words = response.split(' ');
         for (let word of words) {
           res.write(`data: ${word}\n\n`);
-          await new Promise(resolve => setTimeout(resolve, 100)); // Add a small delay between words
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
         res.write(`data: [END]\n\n`);
         break;
       }
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
-
     res.end();
   } catch (error) {
     console.error("An error occurred:", error);
@@ -89,5 +87,5 @@ app.get('/chat', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
