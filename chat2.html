@@ -23,50 +23,53 @@
 
         header {
             display: flex;
-            max-height: 140px;
-            text-align: center;
-            justify-content: center;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
             backdrop-filter: blur(20px);
-            background-color: #fafafa00;
-            
+            background-color: rgba(250, 250, 250, 0);
         }
 
-        header h1{
-            font-size: 30px;
-            margin-top: 14px;
-            margin-bottom: 7px;
+        .header-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-left {
+            justify-content: flex-start;
+        }
+
+        .header-center {
+            justify-content: center;
+        }
+
+        .header-right {
+            justify-content: flex-end;
+        }
+
+        header h1 {
+            font-size: 24px;
             color: rgb(236, 233, 233);
-            
+            text-align: center;
         }
-        header a{
-            margin-top: 10px;
-            margin-left: 10px;
-        }
-        .language-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            background-color: #ecebcf1c;
+
+        .language-toggle, #Report {
+            padding: 8px 12px;
+            background-color: rgba(236, 235, 207, 0.11);
             color: rgb(109, 106, 106);
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
-            z-index: 1000;
+            font-size: 14px;
+            text-decoration: none;
         }
-        .language-toggle:hover {
+
+        .language-toggle:hover, #Report:hover {
             background-color: #342a39;
         }
-       
-        #Report{
-            color: rgb(245, 245, 237);
-            padding-right: 20px;
-            padding-top: 16px;
-            border-radius: 10px;
-            
-        }
-        #Report:hover{
+
+        #Report:hover {
             color: #065ec4;
         }
         
@@ -316,9 +319,46 @@
             
         }
       
+        @media only screen and (max-width: 768px) {
+            header {
+                padding: 10px 5px;
+            }
 
+            header h1 {
+                font-size: 20px;
+            }
+
+            .language-toggle, #Report {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            #overlaychat {
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+               
+            }
+
+            .chat-messages {
+                padding: 15px;
+            }
+
+            .user-input {
+                font-size: 17px;
+            }
+
+            
+        }
         /* Responsive styles */
-      
+       @media only screen and (max-width: 768px) {
+           #overlaychat {
+            bottom: 20px;
+            left: 14px;
+            right: 14px;
+           }
+           
+       }
     </style>
 </head>
 <body>
@@ -379,6 +419,9 @@
     </div>
   
     </main>
+
+  
+ 
 
 
    
@@ -623,56 +666,60 @@ document.addEventListener('DOMContentLoaded', function() {
         return null;
     }
 
-   async function sendMessage() {
-    const message = userInput.value.trim();
-    if (message) {
-        addMessage('You', message, true);
-        userInput.value = '';
-        sendButton.disabled = true;
-        userInput.disabled = true;
-
-        const assistantMessage = addMessage('Assistant', '<span class="typing">Typing...</span>', false);
-        let assistantResponse = '';
-
-        try {
-            const backendUrl = 'https://wisdompenai-0-01.onrender.com';
-            console.log(`Connecting to backend at: ${backendUrl}`);
-            
-            const eventSource = new EventSource(`${backendUrl}/chat?message=${encodeURIComponent(message)}`);
-            
-            eventSource.onopen = function(event) {
-                console.log('Connection to server opened.');
-            };
-
-            eventSource.onmessage = function(event) {
-                console.log('Received message:', event.data);
-                if (event.data === '[END]') {
+    async function sendMessage() {
+        const message = userInput.value.trim();
+        if (message) {
+            addMessage('You', message, true);
+            userInput.value = '';
+            sendButton.disabled = true;
+            userInput.disabled = true;
+    
+            const assistantMessage = addMessage('Assistant', '<span class="typing">Typing...</span>', false);
+            let assistantResponse = '';
+    
+            try {
+                const backendUrl = 'https://wisdompenai-0-01.onrender.com';
+                console.log(`Connecting to backend at: ${backendUrl}`);
+                
+                const eventSource = new EventSource(`${backendUrl}/chat?message=${encodeURIComponent(message)}`);
+                
+                eventSource.onopen = function(event) {
+                    console.log('Connection to server opened.');
+                };
+    
+                eventSource.onmessage = function(event) {
+                    console.log('Received message:', event.data);
+                    if (event.data === '[END]') {
+                        eventSource.close();
+                        assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse.trim()}`;
+                        sendButton.disabled = false;
+                        userInput.disabled = false;
+                    } else {
+                        // Remove any "You:" prefixes from the assistant's response
+                        const cleanedData = event.data.replace(/^You:\s*/i, '').trim();
+                        if (cleanedData) {  // Only add non-empty responses
+                            assistantResponse += cleanedData + ' ';
+                            assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse}`;
+                        }
+                    }
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                };
+    
+                eventSource.onerror = function(error) {
+                    console.error('EventSource failed:', error);
                     eventSource.close();
-                    assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse.trim()}`;
+                    assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
                     sendButton.disabled = false;
                     userInput.disabled = false;
-                } else {
-                    assistantResponse += event.data + ' ';
-                    assistantMessage.innerHTML = `<strong>Assistant:</strong> ${assistantResponse}`;
-                }
-                chatbox.scrollTop = chatbox.scrollHeight;
-            };
-
-            eventSource.onerror = function(error) {
-                console.error('EventSource failed:', error);
-                eventSource.close();
+                };
+            } catch (error) {
+                console.error('Error:', error);
                 assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
                 sendButton.disabled = false;
                 userInput.disabled = false;
-            };
-        } catch (error) {
-            console.error('Error:', error);
-            assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
-            sendButton.disabled = false;
-            userInput.disabled = false;
+            }
         }
     }
-}
 
     sendButton.addEventListener('click', sendMessage);
     userInput.addEventListener('keypress', (e) => {
@@ -694,4 +741,3 @@ document.addEventListener('DOMContentLoaded', function() {
         
     </body>
   </html>
- 
