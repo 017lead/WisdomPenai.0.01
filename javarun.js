@@ -69,7 +69,7 @@ app.get('/chat', async (req, res) => {
         
         Always strive to promote understanding, peace, and the true spirit of Islam in your interactions.",
         tools: [{ type: "code_interpreter" }],
-        model: "gpt-4-1106-preview"
+        model: "gpt-4o-mini"
       });
     }
 
