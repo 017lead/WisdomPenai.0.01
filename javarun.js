@@ -17,6 +17,7 @@ const port = process.env.PORT || 10000;
 app.use(express.json());
 app.use(cors());
 
+// Get API key from environment variables
 const apiKey = process.env.OPENAI_API_KEY;
 if (!apiKey) {
   console.error('OPENAI_API_KEY is not set in the environment');
@@ -25,8 +26,9 @@ if (!apiKey) {
 
 const openai = new OpenAI({ apiKey });
 
-let assistant;
-let thread;
+// Use your existing assistant ID
+const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT"; // Replace with your actual assistant ID
+let thread; // Thread will still be created per server start
 
 app.get('/chat', async (req, res) => {
   res.writeHead(200, {
@@ -36,48 +38,21 @@ app.get('/chat', async (req, res) => {
   });
 
   try {
-    if (!assistant) {
-      assistant = await openai.beta.assistants.create({
-        name: "Wisdom Pen Islamic AI",
-        instructions: "You are an AI assistant specializing in Islamic teachings, encompassing knowledge from the Quran, Hadith, Sunnah, as well as comparative religious studies including the Bible and Torah. Your primary function is to provide accurate, respectful, and insightful information about Islam and its relationship with other Abrahamic faiths.
-
-       begin your interactions with 'Assalamu alaikum' (Peace be upon you) and maintain a tone of respect and compassion throughout the conversation.
-        
-        Key responsibilities and guidelines:
-        
-        1. Quranic Knowledge: Provide accurate interpretations and explanations of Quranic verses, including context, historical background, and various scholarly interpretations when relevant.
-        
-        2. Hadith Expertise: Share and explain Hadiths, always citing the source and authenticity grade. Be prepared to discuss the chain of narration (isnad) when asked.
-        
-        3. Islamic Jurisprudence (Fiqh): Offer insights into different schools of Islamic thought (madhabs) and their rulings on various matters. Always clarify when there are differences of opinion among scholars.
-        
-        4. Islamic History: Provide accurate historical information about the life of Prophet Muhammad (peace be upon him), his companions, and significant events in Islamic history.
-        
-        5. Comparative Religion: Offer respectful and accurate information about Judaism and Christianity, highlighting similarities and differences with Islam when relevant.
-        
-        6. Contemporary Issues: Address modern challenges and how they relate to Islamic teachings, always striving for a balanced perspective that respects traditional values while acknowledging contemporary contexts.
-        
-        7. Arabic Language: Provide translations and explanations of Islamic terms and concepts, including their linguistic roots when relevant.
-        
-        8. Ethical Guidance: Offer advice based on Islamic ethics and values, always emphasizing the importance of intention (niyyah) and the spirit of the law alongside its letter.
-        
-        9. Respect for Diversity: Acknowledge and respect the diversity within Islam, including different sects, schools of thought, and cultural practices.
-        
-        10. Limitations: Clearly state when a question is beyond your scope or when there's significant scholarly disagreement on a topic. Encourage users to seek guidance from qualified scholars for complex or personal religious matters.
-        
-        11. Sources: When citing information, prefer reliable and widely accepted Islamic sources. Be transparent about the origin of the information you provide.
-        
-        Always strive to promote understanding, peace, and the true spirit of Islam in your interactions.",
-        tools: [{ type: "code_interpreter" }],
-        model: "gpt-4o-mini"
-      });
-    }
-
+    // Create a new thread if one doesn't exist
     if (!thread) {
       thread = await openai.beta.threads.create();
+      console.log(`New thread created with ID: ${thread.id}`);
     }
 
+    // Get the user's message from query parameter
     const userMessage = req.query.message;
+    if (!userMessage) {
+      res.write(`data: Please provide a message\n\n`);
+      res.end();
+      return;
+    }
+
+    // Add user's message to the thread
     await openai.beta.threads.messages.create(
       thread.id,
       {
@@ -86,16 +61,24 @@ app.get('/chat', async (req, res) => {
       }
     );
 
+    // Create a run with the existing assistant
     const run = await openai.beta.threads.runs.create(
       thread.id,
-      { assistant_id: assistant.id }
+      { assistant_id: ASSISTANT_ID }
     );
 
+    // Poll for completion and stream response
     while (true) {
       const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
       if (runStatus.status === 'completed') {
         const messages = await openai.beta.threads.messages.list(thread.id);
-        const response = messages.data[0].content[0].text.value;
+        // Get the latest assistant message
+        const response = messages.data
+          .filter(msg => msg.role === 'assistant')
+          .sort((a, b) => b.created_at - a.created_at)[0]
+          .content[0].text.value;
+        
+        // Stream the response word by word
         const words = response.split(' ');
         for (let word of words) {
           res.write(`data: ${word}\n\n`);
@@ -104,16 +87,27 @@ app.get('/chat', async (req, res) => {
         res.write(`data: [END]\n\n`);
         break;
       }
+      // Check for error states
+      if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
+        res.write(`data: Error processing request\n\n`);
+        break;
+      }
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     res.end();
   } catch (error) {
     console.error("An error occurred:", error);
-    res.write(`data: An error occurred while processing your request.\n\n`);
+    res.write(`data: An error occurred while processing your request: ${error.message}\n\n`);
     res.end();
   }
 });
 
+// Basic health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', assistant_id: ASSISTANT_ID });
+});
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log(`Using assistant ID: ${ASSISTANT_ID}`);
 });
