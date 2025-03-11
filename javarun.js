@@ -26,8 +26,31 @@ if (!apiKey) {
 
 const openai = new OpenAI({ apiKey });
 
-// Vector Store ID for file search
-const VECTOR_STORE_ID = "vs_67d0b09abf4c8191af76fc269ed80c3e";
+// Your existing assistant ID
+const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT"; // Replace with your actual assistant ID
+let thread;
+
+// Verify assistant exists and log details on startup
+async function verifyAssistant() {
+  try {
+    const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
+    console.log(`Assistant Verified:
+      ID: ${assistant.id}
+      Name: ${assistant.name}
+      Model: ${assistant.model}
+      Tools: ${JSON.stringify(assistant.tools)}
+      Instructions Preview: ${assistant.instructions.substring(0, 100)}...`);
+    return true;
+  } catch (error) {
+    console.error(`Failed to verify assistant ${ASSISTANT_ID}: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+// Run verification on startup
+verifyAssistant().then(() => {
+  console.log('Assistant verification completed successfully');
+});
 
 app.get('/chat', async (req, res) => {
   res.writeHead(200, {
@@ -37,6 +60,12 @@ app.get('/chat', async (req, res) => {
   });
 
   try {
+    // Create a new thread if one doesn't exist
+    if (!thread) {
+      thread = await openai.beta.threads.create();
+      console.log(`New thread created with ID: ${thread.id} for Assistant ID: ${ASSISTANT_ID}`);
+    }
+
     const userMessage = req.query.message;
     if (!userMessage) {
       res.write(`data: Please provide a message\n\n`);
@@ -44,119 +73,83 @@ app.get('/chat', async (req, res) => {
       return;
     }
 
-    console.log(`Processing message: "${userMessage}"`);
+    console.log(`Processing message "${userMessage}" with Assistant ID: ${ASSISTANT_ID}`);
 
-    // Use the Responses API
-    const response = await openai.responses.create({
-      model: "gpt-4o",
-      input: [
-        {
-          "role": "system",
-          "content": [
-            {
-              "type": "input_text",
-              "text": `Islamic Knowledge Assistant
-
-You are an advanced Islamic Knowledge Assistant with deep expertise in Islamic scholarship. Your purpose is to provide accurate, evidence-based answers to questions about Islam by drawing directly from primary sources.
-
-Core Capabilities:
-- You possess comprehensive knowledge of the Quran, including precise verse locations, contextual understanding, and linguistic nuances of the original Arabic text
-- You are well-versed in authenticated Hadith collections (Sahih Bukhari, Sahih Muslim, Sunan Abu Dawood, Jami al-Tirmidhi, Sunan al-Nasa'i, Sunan ibn Majah)
-- You understand the classification system of Hadith (Sahih, Hasan, Da'if) and prioritize the most reliable narrations
-- You have knowledge of major tafsir (Quranic exegesis) works by renowned scholars
-
-When answering questions:
-1. Always cite specific evidence from the Quran (surah and verse numbers) and authentic Hadith (collection, book, and hadith number)
-2. Provide the original Arabic text when relevant, followed by an accurate translation
-3. Include necessary context for proper understanding of the cited evidence
-4. Explain scholarly consensus (ijma) when it exists on a particular matter
-5. When appropriate, note major differences of opinion among established scholars
-6. Apply critical thinking to synthesize evidence into a coherent answer
-7. Maintain intellectual honesty by acknowledging limitations in your knowledge
-8. Respond with "I cannot provide a definitive answer to this question" when there is insufficient textual evidence available
-
-Also, you must:
-- When mentioning the name of Allah, always add "(SWT)" afterward to show proper reverence
-- When mentioning Prophet Muhammad, always add "(SAW)" after his name
-- Use appropriate honorifics for other prophets accordingly (AS)
-
-Your answers should maintain the highest standards of accuracy while being accessible to both beginners and those with advanced knowledge of Islam. Focus on providing evidence-based responses rather than personal interpretations.
-
-You will not:
-- Fabricate or misattribute Quranic verses or Hadith
-- Present minority opinions as mainstream without clarification
-- Simplify complex theological concepts to the point of inaccuracy
-- Make definitive claims on matters where scholars significantly differ
-
-Your ultimate goal is to serve as a reliable source of Islamic knowledge, grounded firmly in the Quran and authentic Hadith, and illuminated by thoughtful analysis of these divine sources.`
-            }
-          ]
-        },
-        {
-          "role": "user",
-          "content": [
-            {
-              "type": "input_text",
-              "text": userMessage
-            }
-          ]
-        }
-      ],
-      text: {
-        "format": {
-          "type": "text"
-        }
-      },
-      reasoning: {},
-      tools: [
-        {
-          "type": "file_search",
-          "vector_store_ids": [VECTOR_STORE_ID]
-        }
-      ],
-      temperature: 1,
-      max_output_tokens: 2048,
-      top_p: 1,
-      stream: true,
-      store: true
-    });
-
-    // Handle streaming response
-    for await (const chunk of response) {
-      if (chunk.choices && chunk.choices[0].delta && chunk.choices[0].delta.content) {
-        const content = chunk.choices[0].delta.content;
-        // Split content into words and stream
-        const words = content.split(' ');
-        for (let word of words) {
-          if (word) {
-            res.write(`data: ${word}\n\n`);
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-        }
+    // Add user's message to the thread
+    await openai.beta.threads.messages.create(
+      thread.id,
+      {
+        role: "user",
+        content: userMessage
       }
-    }
-    res.write(`data: [END]\n\n`);
-    res.end();
+    );
 
-    console.log(`Response completed for message: "${userMessage}"`);
+    // Create a run with the specified assistant
+    const run = await openai.beta.threads.runs.create(
+      thread.id,
+      { assistant_id: ASSISTANT_ID }
+    );
+
+    // Poll for completion and stream response
+    let timeout = 30; // 30 seconds timeout
+    const startTime = Date.now();
+    while (true) {
+      const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      if (runStatus.status === 'completed') {
+        const messages = await openai.beta.threads.messages.list(thread.id);
+        const response = messages.data
+          .filter(msg => msg.role === 'assistant')
+          .sort((a, b) => b.created_at - a.created_at)[0]
+          .content[0].text.value;
+        
+        console.log(`Response generated for Assistant ID: ${ASSISTANT_ID}`);
+        
+        const words = response.split(' ');
+        for (let word of words) {
+          res.write(`data: ${word}\n\n`);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        res.write(`data: [END]\n\n`);
+        break;
+      }
+      if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
+        res.write(`data: Error processing request: Run ${runStatus.status}\n\n`);
+        break;
+      }
+      if ((Date.now() - startTime) / 1000 > timeout) {
+        res.write(`data: Request timed out\n\n`);
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    res.end();
   } catch (error) {
-    console.error(`Error processing request: ${error.message}`);
+    console.error(`Error in chat endpoint for Assistant ID ${ASSISTANT_ID}: ${error.message}`);
     res.write(`data: An error occurred while processing your request: ${error.message}\n\n`);
     res.end();
   }
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    vector_store_id: VECTOR_STORE_ID,
-    model: 'gpt-4o',
-    api: 'Responses API'
-  });
+// Enhanced health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
+    res.json({
+      status: 'healthy',
+      assistant_id: ASSISTANT_ID,
+      assistant_name: assistant.name,
+      assistant_model: assistant.model,
+      tools_enabled: assistant.tools.map(tool => tool.type)
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'unhealthy',
+      error: `Failed to verify assistant: ${error.message}`
+    });
+  }
 });
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  console.log(`Using Responses API with vector store ID: ${VECTOR_STORE_ID}`);
+  console.log(`Using assistant ID: ${ASSISTANT_ID}`);
 });
