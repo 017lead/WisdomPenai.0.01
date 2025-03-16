@@ -106,7 +106,7 @@ app.post('/chat', upload, async (req, res) => {
         ];
 
         const visionResponse = await openai.chat.completions.create({
-          model: 'gpt-4o',
+          model: 'gpt-4o-mini',
           messages,
           max_tokens: 300,
         });
