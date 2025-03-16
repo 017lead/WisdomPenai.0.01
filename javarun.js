@@ -79,41 +79,79 @@ app.post('/chat', upload, async (req, res) => {
 
     let assistantResponse = '';
 
-    if (files && files.length > 0 && files.some(file => file.mimetype.startsWith('image/'))) {
-      // Handle image uploads
-      const imageFile = files.find(file => file.mimetype.startsWith('image/'));
-      const base64Image = imageFile.buffer.toString('base64');
-      const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
+    // Check if there are files, including images
+    if (files && files.length > 0) {
+      const hasImage = files.some(file => file.mimetype.startsWith('image/'));
+      
+      if (hasImage) {
+        // Handle image uploads with gpt-4o
+        const imageFile = files.find(file => file.mimetype.startsWith('image/'));
+        const base64Image = imageFile.buffer.toString('base64');
+        const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
 
-      const visionResponse = await openai.chat.completions.create({
-        model: 'gpt-4-vision-preview',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: userMessage || 'Describe this image' },
-              { type: 'image_url', image_url: { url: imageUrl } }
-            ]
-          }
-        ],
-        max_tokens: 300,
-      });
-      assistantResponse = visionResponse.choices[0].message.content;
+        const visionResponse = await openai.chat.completions.create({
+          model: 'gpt-4o', // Updated to gpt-4o
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: userMessage || 'Describe this image' },
+                { type: 'image_url', image_url: { url: imageUrl } }
+              ]
+            }
+          ],
+          max_tokens: 300,
+        });
+        assistantResponse = visionResponse.choices[0].message.content;
 
-      await openai.beta.threads.messages.create(thread.id, { role: 'user', content: userMessage || 'Image uploaded' });
-      await openai.beta.threads.messages.create(thread.id, { role: 'assistant', content: assistantResponse });
-    } else {
-      // Handle text or non-image files
-      let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
-      if (files && files.length > 0) {
+        // Add to thread for continuity
+        await openai.beta.threads.messages.create(thread.id, { 
+          role: 'user', 
+          content: userMessage || 'Image uploaded' 
+        });
+        await openai.beta.threads.messages.create(thread.id, { 
+          role: 'assistant', 
+          content: assistantResponse 
+        });
+      } else {
+        // Handle non-image files with Assistants API
+        let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
         const uploadedFile = await openai.files.create({
-          file: files[0].buffer, // Use first file for simplicity
+          file: files[0].buffer, // Use first file
           purpose: 'assistants',
         });
         messageOptions.file_ids = [uploadedFile.id];
-      }
 
-      await openai.beta.threads.messages.create(thread.id, messageOptions);
+        await openai.beta.threads.messages.create(thread.id, messageOptions);
+        const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
+
+        let timeout = 30;
+        const startTime = Date.now();
+        while (true) {
+          const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+          if (runStatus.status === 'completed') {
+            const messages = await openai.beta.threads.messages.list(thread.id);
+            assistantResponse = messages.data
+              .filter(msg => msg.role === 'assistant' && msg.run_id === run.id)
+              .sort((a, b) => b.created_at - a.created_at)[0]
+              .content[0].text.value;
+            break;
+          }
+          if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
+            throw new Error(`Run ${runStatus.status}`);
+          }
+          if ((Date.now() - startTime) / 1000 > timeout) {
+            throw new Error('Request timed out');
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    } else {
+      // No files, use Assistants API only
+      await openai.beta.threads.messages.create(thread.id, { 
+        role: 'user', 
+        content: userMessage 
+      });
       const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
 
       let timeout = 30;
@@ -154,7 +192,7 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
-// Health endpoint remains unchanged
+// Health endpoint (unchanged)
 app.get('/health', async (req, res) => {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
