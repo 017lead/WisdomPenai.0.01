@@ -1,155 +1,295 @@
-import express from 'express';
-import OpenAI from "openai";
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import cors from 'cors';
-import fetch from 'node-fetch';
+<script>
+  // Global Variables
+  const chatbox = document.getElementById('chat-messages');
+  const userInput = document.getElementById('user-input');
+  const sendButton = document.getElementById('send');
+  const fileUpload = document.getElementById('file-upload');
+  const fileList = document.getElementById('file-list');
+  const overlaychat = document.getElementById('overlaychat');
+  const videoUrlButton = document.getElementById('video-url-button');
+  const urlInputContainer = document.getElementById('url-input-container');
+  const urlInput = document.getElementById('url-input');
+  
+  let uploadedFiles = [];
+  let isArabic = false;
+  let urlAdded = '';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-dotenv.config({ path: join(__dirname, '.env') });
-
-const app = express();
-const port = process.env.PORT || 10000;
-
-app.use(express.json());
-app.use(cors());
-
-// Get API key from environment variables
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) {
-  console.error('OPENAI_API_KEY is not set in the environment');
-  process.exit(1);
-}
-
-const openai = new OpenAI({ apiKey });
-
-// Your existing assistant ID
-const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT"; // Replace with your actual assistant ID
-let thread;
-
-// Verify assistant exists and log details on startup
-async function verifyAssistant() {
-  try {
-    const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
-    console.log(`Assistant Verified:
-      ID: ${assistant.id}
-      Name: ${assistant.name}
-      Model: ${assistant.model}
-      Tools: ${JSON.stringify(assistant.tools)}
-      Instructions Preview: ${assistant.instructions.substring(0, 100)}...`);
-    return true;
-  } catch (error) {
-    console.error(`Failed to verify assistant ${ASSISTANT_ID}: ${error.message}`);
-    process.exit(1);
+  // Dark Mode Preference
+  function checkUserPreference() {
+    const darkModeCookie = getCookie('darkMode');
+    if (darkModeCookie === 'true') {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
   }
-}
 
-// Run verification on startup
-verifyAssistant().then(() => {
-  console.log('Assistant verification completed successfully');
-});
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
 
-app.get('/chat', async (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive'
+  window.addEventListener('load', checkUserPreference);
+
+  // Language Toggle
+  function toggleLanguage() {
+    isArabic = !isArabic;
+    const chatContainer = document.querySelector('.chat-container');
+    const testElement = document.querySelector('.test');
+    const languageToggle = document.getElementById('languageToggle');
+
+    if (isArabic) {
+      chatContainer.classList.add('rtl');
+      sendButton.textContent = 'ابحث';
+      testElement.textContent = 'اختبار تجريبي: 0.7.9';
+      userInput.setAttribute('placeholder', 'اكتب سؤالك هنا...');
+      languageToggle.textContent = 'English';
+      document.querySelectorAll('.chat-messages li').forEach(li => {
+        if (li.textContent.includes('You:')) {
+          li.textContent = li.textContent.replace('You:', 'أنت:');
+        }
+      });
+    } else {
+      chatContainer.classList.remove('rtl');
+      sendButton.textContent = 'Find';
+      testElement.textContent = 'Beta Testing: 0.7.9';
+      userInput.setAttribute('placeholder', 'Type Your Questions Here..');
+      languageToggle.textContent = 'عربي';
+      document.querySelectorAll('.chat-messages li').forEach(li => {
+        if (li.textContent.includes('أنت:')) {
+          li.textContent = li.textContent.replace('أنت:', 'You:');
+        }
+      });
+    }
+  }
+
+  document.getElementById('languageToggle').addEventListener('click', toggleLanguage);
+
+  // Textarea Auto-Resize
+  userInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
   });
 
-  try {
-    // Create a new thread if one doesn't exist
-    if (!thread) {
-      thread = await openai.beta.threads.create();
-      console.log(`New thread created with ID: ${thread.id} for Assistant ID: ${ASSISTANT_ID}`);
-    }
+  // Enable/Disable Send Button
+  document.addEventListener('DOMContentLoaded', function() {
+    sendButton.disabled = true;
+    userInput.addEventListener('input', function() {
+      sendButton.disabled = this.value.trim() === '' && uploadedFiles.length === 0 && !urlAdded;
+    });
+  });
 
-    const userMessage = req.query.message;
-    if (!userMessage) {
-      res.write(`data: Please provide a message\n\n`);
-      res.end();
-      return;
-    }
+  // Quran Reference Formatter
+  function formatQuranReferences(text) {
+    if (!text) return text;
+    const pattern = /Quran\s+(\d+):(\d+(?:-\d+)?)/g;
+    return text.replace(pattern, (match, surah, verse) => {
+      return `<a href="https://www.google.com/search?q=Quran+Surah+${surah}+Verse+${verse}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+    });
+  }
 
-    console.log(`Processing message "${userMessage}" with Assistant ID: ${ASSISTANT_ID}`);
+  // Chat Functionality
+  function addMessage(sender, message, isUser = false) {
+    const messageElement = document.createElement('li');
+    messageElement.classList.add(isUser ? 'user-message' : 'assistant-message');
+    const formattedMessage = isUser ? message : formatQuranReferences(message);
+    messageElement.innerHTML = isUser ? message : formattedMessage;
+    chatbox.appendChild(messageElement);
+    chatbox.scrollTop = chatbox.scrollHeight;
+    return messageElement;
+  }
 
-    // Add user's message to the thread
-    await openai.beta.threads.messages.create(
-      thread.id,
-      {
-        role: "user",
-        content: userMessage
-      }
-    );
+  function createTypingAnimation() {
+    const words = ['Loading', 'Finding', 'Looking', 'Thinking'];
+    const randomWord = words[Math.floor(Math.random() * words.length)];
+    const typingElement = document.createElement('div');
+    typingElement.className = 'typing-animation';
+    typingElement.innerHTML = `${randomWord} <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>`;
+    return typingElement;
+  }
 
-    // Create a run with the specified assistant
-    const run = await openai.beta.threads.runs.create(
-      thread.id,
-      { assistant_id: ASSISTANT_ID }
-    );
+  async function sendMessage() {
+    const message = userInput.value.trim();
+    if (message || uploadedFiles.length > 0 || urlAdded) {
+      addMessage('You', message, true);
+      userInput.value = '';
+      sendButton.disabled = true;
+      userInput.disabled = true;
 
-    // Poll for completion and stream response
-    let timeout = 30; // 30 seconds timeout
-    const startTime = Date.now();
-    while (true) {
-      const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-      if (runStatus.status === 'completed') {
-        const messages = await openai.beta.threads.messages.list(thread.id);
-        const response = messages.data
-          .filter(msg => msg.role === 'assistant')
-          .sort((a, b) => b.created_at - a.created_at)[0]
-          .content[0].text.value;
-        
-        console.log(`Response generated for Assistant ID: ${ASSISTANT_ID}`);
-        
-        const words = response.split(' ');
-        for (let word of words) {
-          res.write(`data: ${word}\n\n`);
-          await new Promise(resolve => setTimeout(resolve, 100));
+      const assistantMessage = addMessage('Assistant', '', false);
+      const typingAnimation = createTypingAnimation();
+      assistantMessage.appendChild(typingAnimation);
+
+      try {
+        const formData = new FormData();
+        formData.append('message', message);
+        uploadedFiles.forEach(item => {
+          formData.append('files', item.file);
+        });
+        if (urlAdded) {
+          formData.append('url', urlAdded);
         }
-        res.write(`data: [END]\n\n`);
-        break;
+
+        const backendUrl = 'https://wisdompenai-0-01.onrender.com';
+        const response = await fetch(`${backendUrl}/chat`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantResponse = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[END]') {
+                break;
+              } else {
+                assistantResponse += data + ' ';
+                assistantMessage.innerHTML = formatQuranReferences(assistantResponse);
+              }
+            }
+          }
+          chatbox.scrollTop = chatbox.scrollHeight;
+        }
+        assistantMessage.innerHTML = formatQuranReferences(assistantResponse.trim());
+      } catch (error) {
+        console.error('Error:', error);
+        assistantMessage.innerHTML = '<strong>Assistant:</strong> An error occurred while processing your request.';
+      } finally {
+        sendButton.disabled = false;
+        userInput.disabled = false;
+        uploadedFiles = [];
+        fileList.innerHTML = '';
+        urlAdded = '';
+        urlInput.value = '';
+        urlInputContainer.style.display = 'none';
       }
-      if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
-        res.write(`data: Error processing request: Run ${runStatus.status}\n\n`);
-        break;
-      }
-      if ((Date.now() - startTime) / 1000 > timeout) {
-        res.write(`data: Request timed out\n\n`);
-        break;
-      }
-      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-    res.end();
-  } catch (error) {
-    console.error(`Error in chat endpoint for Assistant ID ${ASSISTANT_ID}: ${error.message}`);
-    res.write(`data: An error occurred while processing your request: ${error.message}\n\n`);
-    res.end();
   }
-});
 
-// Enhanced health check endpoint
-app.get('/health', async (req, res) => {
-  try {
-    const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
-    res.json({
-      status: 'healthy',
-      assistant_id: ASSISTANT_ID,
-      assistant_name: assistant.name,
-      assistant_model: assistant.model,
-      tools_enabled: assistant.tools.map(tool => tool.type)
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'unhealthy',
-      error: `Failed to verify assistant: ${error.message}`
-    });
+  sendButton.addEventListener('click', sendMessage);
+  userInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  // Video/URL Button Functionality
+  videoUrlButton.addEventListener('click', () => {
+    const isVisible = urlInputContainer.style.display === 'block';
+    urlInputContainer.style.display = isVisible ? 'none' : 'block';
+    videoUrlButton.classList.toggle('active', !isVisible);
+    if (!isVisible) {
+      urlInput.focus();
+    }
+  });
+
+  urlInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      urlAdded = urlInput.value.trim();
+      if (urlAdded) {
+        urlInputContainer.style.display = 'none';
+        userInput.focus();
+      }
+    }
+  });
+
+  // Initial Message
+  addMessage('Assistant', 'Assalamu alaikum! How can I assist you today? You can also upload images or text files, or share a YouTube video URL.', false);
+
+  // File Upload Handling
+  fileUpload.addEventListener('change', function(e) {
+    const files = e.target.files;
+    if (files.length > 0) {
+      handleFiles(files);
+    }
+  });
+
+  overlaychat.addEventListener('click', function(e) {
+    if (e.target === overlaychat) {
+      userInput.focus();
+    }
+  });
+
+  function handleFiles(files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type.startsWith('image/') || file.type === 'text/plain' || file.name.endsWith('.txt')) {
+        if (file.size <= 5 * 1024 * 1024) {
+          processFile(file);
+        } else {
+          alert('File size exceeds 5MB limit.');
+        }
+      } else {
+        alert('Only image and text files are supported.');
+      }
+    }
+    setTimeout(() => userInput.focus(), 100);
   }
-});
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-  console.log(`Using assistant ID: ${ASSISTANT_ID}`);
-});
+  function processFile(file) {
+    const fileId = Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    uploadedFiles.push({ id: fileId, file: file });
+    addFileToUI(file, fileId);
+  }
+
+  function addFileToUI(file, fileId) {
+    const fileItem = document.createElement('div');
+    fileItem.className = 'file-item';
+    fileItem.setAttribute('data-file-id', fileId);
+    const fileIcon = file.type.startsWith('image/') ? 'image' : 'description';
+    const fileTypeClass = file.type.startsWith('image/') ? 'file-type-img' : 'file-type-txt';
+    const fileTypeText = file.type.startsWith('image/') ? file.type.split('/')[1].toUpperCase() : 'TXT';
+
+    const fileHeader = document.createElement('div');
+    fileHeader.className = 'file-item-header';
+    fileHeader.innerHTML = `
+      <span class="material-icons">${fileIcon}</span>
+      <span class="file-name">${file.name}</span>
+      <span class="file-type-indicator ${fileTypeClass}">${fileTypeText}</span>
+      <span class="material-icons remove-file" data-file-id="${fileId}">close</span>
+    `;
+    fileItem.appendChild(fileHeader);
+    fileList.appendChild(fileItem);
+
+    fileItem.querySelector('.remove-file').addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeFile(fileId);
+    });
+
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const previewContainer = document.createElement('div');
+        previewContainer.className = 'file-preview-container';
+        const preview = document.createElement('img');
+        preview.src = e.target.result;
+        preview.className = 'file-preview';
+        previewContainer.appendChild(preview);
+        fileItem.appendChild(previewContainer);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function removeFile(fileId) {
+    uploadedFiles = uploadedFiles.filter(item => item.id !== fileId);
+    const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
+    if (fileItem) fileItem.remove();
+  }
+</script>
