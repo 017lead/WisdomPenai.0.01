@@ -1,4 +1,4 @@
-<script>
+
   // Global Variables
   const chatbox = document.getElementById('chat-messages');
   const userInput = document.getElementById('user-input');
@@ -292,4 +292,3 @@
     const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
     if (fileItem) fileItem.remove();
   }
-</script>
