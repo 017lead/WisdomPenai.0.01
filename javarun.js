@@ -17,10 +17,12 @@ const port = process.env.PORT || 10000;
 app.use(express.json());
 app.use(cors());
 
-// Setup multer for file uploads (in-memory storage)
-const upload = multer({ storage: multer.memoryStorage() });
+// Setup multer for multiple file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+}).array('files', 5); // Expect multiple files under 'files', max 5
 
-// Get API key from environment variables
 const apiKey = process.env.OPENAI_API_KEY;
 if (!apiKey) {
   console.error('OPENAI_API_KEY is not set in the environment');
@@ -28,12 +30,9 @@ if (!apiKey) {
 }
 
 const openai = new OpenAI({ apiKey });
-
-// Your existing assistant ID
-const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT"; // Replace with your actual assistant ID
+const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT";
 let thread;
 
-// Verify assistant exists and log details on startup
 async function verifyAssistant() {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
@@ -50,12 +49,11 @@ async function verifyAssistant() {
   }
 }
 
-// Run verification on startup
 verifyAssistant().then(() => {
   console.log('Assistant verification completed successfully');
 });
 
-app.post('/chat', upload.single('file'), async (req, res) => {
+app.post('/chat', upload, async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -69,124 +67,94 @@ app.post('/chat', upload.single('file'), async (req, res) => {
     }
 
     const userMessage = req.body.message;
-    const file = req.file;
+    const files = req.files; // Array of files
 
-    if (!userMessage) {
-      res.write(`data: Please provide a message\n\n`);
+    if (!userMessage && (!files || files.length === 0)) {
+      res.write(`data: Please provide a message or files\n\n`);
       res.end();
       return;
     }
 
     console.log(`Processing message "${userMessage}" with Assistant ID: ${ASSISTANT_ID}`);
 
-    if (file && file.mimetype.startsWith('image/')) {
-      // Handle image upload with Chat Completions API
-      const base64Image = file.buffer.toString('base64');
-      const imageUrl = `data:${file.mimetype};base64,${base64Image}`;
+    let assistantResponse = '';
+
+    if (files && files.length > 0 && files.some(file => file.mimetype.startsWith('image/'))) {
+      // Handle image uploads
+      const imageFile = files.find(file => file.mimetype.startsWith('image/'));
+      const base64Image = imageFile.buffer.toString('base64');
+      const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
 
       const visionResponse = await openai.chat.completions.create({
-        model: 'gpt-4-vision-preview', // Use a vision-capable model
+        model: 'gpt-4-vision-preview',
         messages: [
           {
             role: 'user',
             content: [
-              { type: 'text', text: userMessage },
+              { type: 'text', text: userMessage || 'Describe this image' },
               { type: 'image_url', image_url: { url: imageUrl } }
             ]
           }
         ],
         max_tokens: 300,
       });
-      const assistantResponse = visionResponse.choices[0].message.content;
+      assistantResponse = visionResponse.choices[0].message.content;
 
-      // Add user's message to thread (without attaching the image)
-      await openai.beta.threads.messages.create(
-        thread.id,
-        {
-          role: 'user',
-          content: userMessage
-        }
-      );
-
-      // Add assistant's response to thread
-      await openai.beta.threads.messages.create(
-        thread.id,
-        {
-          role: 'assistant',
-          content: assistantResponse
-        }
-      );
-
-      // Stream the response
-      const words = assistantResponse.split(' ');
-      for (let word of words) {
-        res.write(`data: ${word}\n\n`);
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      res.write(`data: [END]\n\n`);
+      await openai.beta.threads.messages.create(thread.id, { role: 'user', content: userMessage || 'Image uploaded' });
+      await openai.beta.threads.messages.create(thread.id, { role: 'assistant', content: assistantResponse });
     } else {
-      // Handle text-only or non-image files with Assistants API
-      let messageOptions = {
-        role: 'user',
-        content: userMessage
-      };
-
-      if (file) {
-        // Upload non-image file for retrieval
+      // Handle text or non-image files
+      let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
+      if (files && files.length > 0) {
         const uploadedFile = await openai.files.create({
-          file: file.buffer,
+          file: files[0].buffer, // Use first file for simplicity
           purpose: 'assistants',
         });
         messageOptions.file_ids = [uploadedFile.id];
       }
 
       await openai.beta.threads.messages.create(thread.id, messageOptions);
+      const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
 
-      const run = await openai.beta.threads.runs.create(
-        thread.id,
-        { assistant_id: ASSISTANT_ID }
-      );
-
-      // Poll for completion and stream response
-      let timeout = 30; // 30 seconds timeout
+      let timeout = 30;
       const startTime = Date.now();
       while (true) {
         const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
         if (runStatus.status === 'completed') {
           const messages = await openai.beta.threads.messages.list(thread.id);
-          const response = messages.data
+          assistantResponse = messages.data
             .filter(msg => msg.role === 'assistant' && msg.run_id === run.id)
             .sort((a, b) => b.created_at - a.created_at)[0]
             .content[0].text.value;
-
-          const words = response.split(' ');
-          for (let word of words) {
-            res.write(`data: ${word}\n\n`);
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-          res.write(`data: [END]\n\n`);
           break;
         }
         if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
-          res.write(`data: Error processing request: Run ${runStatus.status}\n\n`);
-          break;
+          throw new Error(`Run ${runStatus.status}`);
         }
         if ((Date.now() - startTime) / 1000 > timeout) {
-          res.write(`data: Request timed out\n\n`);
-          break;
+          throw new Error('Request timed out');
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
+
+    // Stream response
+    const words = assistantResponse.split(' ');
+    for (let word of words) {
+      res.write(`data: ${word}\n\n`);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    res.write(`data: [END]\n\n`);
     res.end();
   } catch (error) {
-    console.error(`Error in chat endpoint for Assistant ID ${ASSISTANT_ID}: ${error.message}`);
-    res.write(`data: An error occurred: ${error.message}\n\n`);
+    console.error(`Error in /chat: ${error.message}`);
+    res.write(`data: Error: ${error.message}\n\n`);
+    res.write(`data: [END]\n\n`);
     res.end();
   }
 });
 
-// Health check endpoint
+// Health endpoint remains unchanged
 app.get('/health', async (req, res) => {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
