@@ -17,11 +17,10 @@ const port = process.env.PORT || 10000;
 app.use(express.json());
 app.use(cors());
 
-// Setup multer for multiple file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-}).array('files', 5); // Expect multiple files under 'files', max 5
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).array('files', 5);
 
 const apiKey = process.env.OPENAI_API_KEY;
 if (!apiKey) {
@@ -66,8 +65,8 @@ app.post('/chat', upload, async (req, res) => {
       console.log(`New thread created with ID: ${thread.id} for Assistant ID: ${ASSISTANT_ID}`);
     }
 
-    const userMessage = req.body.message;
-    const files = req.files; // Array of files
+    const userMessage = req.body.message || '';
+    const files = req.files;
 
     if (!userMessage && (!files || files.length === 0)) {
       res.write(`data: Please provide a message or files\n\n`);
@@ -79,32 +78,41 @@ app.post('/chat', upload, async (req, res) => {
 
     let assistantResponse = '';
 
-    // Check if there are files, including images
     if (files && files.length > 0) {
       const hasImage = files.some(file => file.mimetype.startsWith('image/'));
       
       if (hasImage) {
-        // Handle image uploads with gpt-4o
+        // Fetch thread history for context
+        const threadMessages = await openai.beta.threads.messages.list(thread.id);
+        const priorMessages = threadMessages.data.map(msg => ({
+          role: msg.role,
+          content: msg.content[0].text.value
+        })).reverse();
+
         const imageFile = files.find(file => file.mimetype.startsWith('image/'));
         const base64Image = imageFile.buffer.toString('base64');
         const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
 
+        // Combine thread history with current request
+        const messages = [
+          ...priorMessages,
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: userMessage || 'Describe this image' },
+              { type: 'image_url', image_url: { url: imageUrl } }
+            ]
+          }
+        ];
+
         const visionResponse = await openai.chat.completions.create({
-          model: 'gpt-4o', // Updated to gpt-4o
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: userMessage || 'Describe this image' },
-                { type: 'image_url', image_url: { url: imageUrl } }
-              ]
-            }
-          ],
+          model: 'gpt-4o',
+          messages,
           max_tokens: 300,
         });
         assistantResponse = visionResponse.choices[0].message.content;
 
-        // Add to thread for continuity
+        // Add to thread
         await openai.beta.threads.messages.create(thread.id, { 
           role: 'user', 
           content: userMessage || 'Image uploaded' 
@@ -114,10 +122,10 @@ app.post('/chat', upload, async (req, res) => {
           content: assistantResponse 
         });
       } else {
-        // Handle non-image files with Assistants API
+        // Non-image files with Assistants API
         let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
         const uploadedFile = await openai.files.create({
-          file: files[0].buffer, // Use first file
+          file: files[0].buffer,
           purpose: 'assistants',
         });
         messageOptions.file_ids = [uploadedFile.id];
@@ -147,7 +155,7 @@ app.post('/chat', upload, async (req, res) => {
         }
       }
     } else {
-      // No files, use Assistants API only
+      // Text-only with Assistants API
       await openai.beta.threads.messages.create(thread.id, { 
         role: 'user', 
         content: userMessage 
@@ -192,7 +200,6 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
-// Health endpoint (unchanged)
 app.get('/health', async (req, res) => {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
