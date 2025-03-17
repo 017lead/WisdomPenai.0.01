@@ -2,16 +2,19 @@
   "name": "wisdom-pen-islamic-ai",
   "version": "1.0.0",
   "description": "Islamic AI assistant using OpenAI API",
-  "main": "server.js",
+  "main": "server2.js",
   "type": "module",
   "scripts": {
-    "start": "node javarun.js"
+    "start": "node javarun.js",
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=18.0.0"
+    
   },
   "dependencies": {
-   "express": "^4.19.2",
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
     "openai": "^4.29.0",
     "multer": "^1.4.5-lts.1",
     "dotenv": "^16.4.5",
