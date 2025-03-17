@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
 import multer from 'multer';
+import ytdl from 'ytdl-core';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,7 +21,7 @@ app.use(cors());
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for uploaded files
 }).array('files', 5);
 
 const apiKey = process.env.OPENAI_API_KEY;
@@ -29,7 +31,7 @@ if (!apiKey) {
 }
 
 const openai = new OpenAI({ apiKey });
-const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT";
+const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT"; // Replace with your assistant ID
 let thread;
 
 async function verifyAssistant() {
@@ -52,6 +54,45 @@ verifyAssistant().then(() => {
   console.log('Assistant verification completed successfully');
 });
 
+// Endpoint to transcribe a video URL
+app.post('/transcribe', async (req, res) => {
+  const { url } = req.body;
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required' });
+  }
+  try {
+    // Validate YouTube URL
+    if (!ytdl.validateURL(url)) {
+      return res.status(400).json({ error: 'Invalid YouTube URL' });
+    }
+    // Download audio
+    const audioStream = ytdl(url, { filter: 'audioonly' });
+    const audioFilePath = `/tmp/audio-${Date.now()}.mp3`;
+    const writeStream = fs.createWriteStream(audioFilePath);
+    audioStream.pipe(writeStream);
+
+    await new Promise((resolve, reject) => {
+      writeStream.on('finish', resolve);
+      writeStream.on('error', reject);
+    });
+
+    // Transcribe using OpenAI Whisper
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(audioFilePath),
+      model: 'whisper-1',
+    });
+
+    // Clean up temporary file
+    fs.unlinkSync(audioFilePath);
+
+    res.json({ transcription: transcription.text });
+  } catch (error) {
+    console.error(`Transcription error: ${error.message}`);
+    res.status(500).json({ error: 'Failed to transcribe video' });
+  }
+});
+
+// Endpoint to handle chat with AI, including transcription
 app.post('/chat', upload, async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -66,10 +107,11 @@ app.post('/chat', upload, async (req, res) => {
     }
 
     const userMessage = req.body.message || '';
+    const transcription = req.body.transcription || '';
     const files = req.files;
 
-    if (!userMessage && (!files || files.length === 0)) {
-      res.write(`data: Please provide a message or files\n\n`);
+    if (!userMessage && (!files || files.length === 0) && !transcription) {
+      res.write(`data: Please provide a message, files, or transcription\n\n`);
       res.end();
       return;
     }
@@ -77,12 +119,12 @@ app.post('/chat', upload, async (req, res) => {
     console.log(`Processing message "${userMessage}" with Assistant ID: ${ASSISTANT_ID}`);
 
     let assistantResponse = '';
+    let messageContent = transcription ? `Transcription: ${transcription}\n\n${userMessage}` : userMessage;
 
     if (files && files.length > 0) {
       const hasImage = files.some(file => file.mimetype.startsWith('image/'));
       
       if (hasImage) {
-        // Fetch thread history for context
         const threadMessages = await openai.beta.threads.messages.list(thread.id);
         const priorMessages = threadMessages.data.map(msg => ({
           role: msg.role,
@@ -93,13 +135,12 @@ app.post('/chat', upload, async (req, res) => {
         const base64Image = imageFile.buffer.toString('base64');
         const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
 
-        // Combine thread history with current request
         const messages = [
           ...priorMessages,
           {
             role: 'user',
             content: [
-              { type: 'text', text: userMessage || 'Describe this image' },
+              { type: 'text', text: messageContent || 'Describe this image' },
               { type: 'image_url', image_url: { url: imageUrl } }
             ]
           }
@@ -112,18 +153,16 @@ app.post('/chat', upload, async (req, res) => {
         });
         assistantResponse = visionResponse.choices[0].message.content;
 
-        // Add to thread
         await openai.beta.threads.messages.create(thread.id, { 
           role: 'user', 
-          content: userMessage || 'Image uploaded' 
+          content: messageContent || 'Image uploaded' 
         });
         await openai.beta.threads.messages.create(thread.id, { 
           role: 'assistant', 
           content: assistantResponse 
         });
       } else {
-        // Non-image files with Assistants API
-        let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
+        let messageOptions = { role: 'user', content: messageContent || 'File uploaded' };
         const uploadedFile = await openai.files.create({
           file: files[0].buffer,
           purpose: 'assistants',
@@ -155,10 +194,9 @@ app.post('/chat', upload, async (req, res) => {
         }
       }
     } else {
-      // Text-only with Assistants API
       await openai.beta.threads.messages.create(thread.id, { 
         role: 'user', 
-        content: userMessage 
+        content: messageContent 
       });
       const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
 
@@ -184,7 +222,6 @@ app.post('/chat', upload, async (req, res) => {
       }
     }
 
-    // Stream response
     const words = assistantResponse.split(' ');
     for (let word of words) {
       res.write(`data: ${word}\n\n`);
@@ -200,6 +237,7 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
+// Health check endpoint
 app.get('/health', async (req, res) => {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
