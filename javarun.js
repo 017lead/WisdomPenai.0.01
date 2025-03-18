@@ -66,28 +66,39 @@ app.post('/transcribe', async (req, res) => {
     const transcript = await assemblyai.transcripts.create({
       audio_url: url,
     });
-    console.log(`Transcript requested, ID: ${transcript.id}`);
+    console.log(`Transcript requested, ID: ${transcript.id}, Status: ${transcript.status}`);
 
-    const maxWaitTime = 5 * 60 * 1000;
+    const maxWaitTime = 10 * 60 * 1000; // Increased to 10 minutes
     const startTime = Date.now();
+    let lastStatus = transcript.status;
+
     while (Date.now() - startTime < maxWaitTime) {
       const status = await assemblyai.transcripts.get(transcript.id);
-      console.log(`Transcription status: ${status.status}`);
+      if (status.status !== lastStatus) {
+        console.log(`Transcription status updated: ${status.status}`);
+        lastStatus = status.status;
+      }
       if (status.status === 'completed') {
         console.log(`Transcription completed: ${status.text.substring(0, 100)}...`);
         return res.json({ transcription: status.text });
       } else if (status.status === 'failed' || status.status === 'error') {
-        throw new Error(`Transcription failed with status: ${status.status}`);
+        console.error(`Transcription failed with status: ${status.status}, Error: ${status.error || 'No error message provided'}`);
+        throw new Error(`Transcription failed with status: ${status.status}${status.error ? ` - ${status.error}` : ''}`);
       }
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
-    throw new Error('Transcription timed out after 5 minutes');
+    console.error(`Transcription timed out after ${maxWaitTime / 60000} minutes for URL: ${url}`);
+    throw new Error('Transcription timed out after 10 minutes');
   } catch (error) {
     console.error(`Transcription error for URL ${url}: ${error.message}`);
+    if (error.response) {
+      console.error(`AssemblyAI API response: ${JSON.stringify(error.response.data)}`);
+    }
     res.status(500).json({ error: `Failed to transcribe video: ${error.message}` });
   }
 });
 
+// /chat endpoint remains unchanged for brevity; it’s assumed working if transcription succeeds
 app.post('/chat', upload, async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
