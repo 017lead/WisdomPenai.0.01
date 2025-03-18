@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
 import multer from 'multer';
-import { AssemblyAI } from 'assemblyai';
+import { YoutubeTranscript } from 'youtube-transcript'; // New dependency
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,14 +24,12 @@ const upload = multer({
 }).array('files', 5);
 
 const apiKey = process.env.OPENAI_API_KEY;
-const assemblyAiApiKey = process.env.ASSEMBLYAI_API_KEY;
-if (!apiKey || !assemblyAiApiKey) {
-  console.error('Missing API keys in environment (OPENAI_API_KEY or ASSEMBLYAI_API_KEY)');
+if (!apiKey) {
+  console.error('Missing OPENAI_API_KEY in environment');
   process.exit(1);
 }
 
 const openai = new OpenAI({ apiKey });
-const assemblyai = new AssemblyAI({ apiKey: assemblyAiApiKey });
 const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT";
 let thread;
 
@@ -68,7 +66,7 @@ function normalizeYouTubeUrl(url) {
     videoId = url.match(youtubeRegex)[1];
     return `https://www.youtube.com/watch?v=${videoId}`;
   }
-  return url; // Return original if not a YouTube URL
+  return url;
 }
 
 app.post('/transcribe', async (req, res) => {
@@ -83,48 +81,21 @@ app.post('/transcribe', async (req, res) => {
   console.log(`Normalized URL for transcription: ${normalizedUrl}`);
 
   try {
-    const transcript = await assemblyai.transcripts.create({
-      audio_url: normalizedUrl,
-    }).catch(err => {
-      console.error(`Failed to create transcript: ${err.message}`);
-      throw new Error(`Failed to initiate transcription: ${err.message}`);
-    });
-    console.log(`Transcript requested, ID: ${transcript.id}, Status: ${transcript.status}`);
-
-    const maxWaitTime = 10 * 60 * 1000; // 10 minutes
-    const startTime = Date.now();
-    let lastStatus = transcript.status;
-
-    while (Date.now() - startTime < maxWaitTime) {
-      const status = await assemblyai.transcripts.get(transcript.id).catch(err => {
-        console.error(`Failed to get transcript status: ${err.message}`);
-        throw new Error(`Failed to check transcription status: ${err.message}`);
-      });
-      if (status.status !== lastStatus) {
-        console.log(`Transcription status updated: ${status.status}`);
-        lastStatus = status.status;
-      }
-      if (status.status === 'completed') {
-        console.log(`Transcription completed: ${status.text.substring(0, 100)}...`);
-        return res.json({ transcription: status.text });
-      } else if (status.status === 'failed' || status.status === 'error') {
-        console.error(`Transcription failed with status: ${status.status}, Error: ${status.error || 'No error message provided'}`);
-        throw new Error(`Transcription failed with status: ${status.status}${status.error ? ` - ${status.error}` : ''}`);
-      }
-      await new Promise(resolve => setTimeout(resolve, 5000));
+    const transcript = await YoutubeTranscript.fetchTranscript(normalizedUrl);
+    if (!transcript || transcript.length === 0) {
+      throw new Error('No transcription available for this video');
     }
-    console.error(`Transcription timed out after ${maxWaitTime / 60000} minutes for URL: ${normalizedUrl}`);
-    throw new Error('Transcription timed out after 10 minutes');
+
+    // Combine transcript segments into a single string
+    const transcriptionText = transcript.map(t => t.text).join(' ');
+    console.log(`Transcription retrieved: ${transcriptionText.substring(0, 100)}...`);
+    res.json({ transcription: transcriptionText });
   } catch (error) {
     console.error(`Transcription error for URL ${normalizedUrl}: ${error.message}`);
-    if (error.response) {
-      console.error(`AssemblyAI API response: ${JSON.stringify(error.response.data)}`);
-    }
     res.status(500).json({ error: `Failed to transcribe video: ${error.message}` });
   }
 });
 
-// /chat endpoint unchanged for brevity
 app.post('/chat', upload, async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
