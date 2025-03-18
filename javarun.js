@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
 import multer from 'multer';
-import { AssemblyAI } from 'assemblyai'; // Add AssemblyAI
+import { AssemblyAI } from 'assemblyai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,19 +20,19 @@ app.use(cors());
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for uploaded files
+  limits: { fileSize: 5 * 1024 * 1024 },
 }).array('files', 5);
 
 const apiKey = process.env.OPENAI_API_KEY;
-const assemblyAiApiKey = process.env.ASSEMBLYAI_API_KEY; // AssemblyAI API Key
+const assemblyAiApiKey = process.env.ASSEMBLYAI_API_KEY;
 if (!apiKey || !assemblyAiApiKey) {
   console.error('Missing API keys in environment (OPENAI_API_KEY or ASSEMBLYAI_API_KEY)');
   process.exit(1);
 }
 
 const openai = new OpenAI({ apiKey });
-const assemblyai = new AssemblyAI({ apiKey: assemblyAiApiKey }); // Initialize AssemblyAI
-const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT"; // Your assistant ID
+const assemblyai = new AssemblyAI({ apiKey: assemblyAiApiKey });
+const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT";
 let thread;
 
 async function verifyAssistant() {
@@ -55,38 +55,39 @@ verifyAssistant().then(() => {
   console.log('Assistant verification completed successfully');
 });
 
-// Endpoint to transcribe a YouTube video URL using AssemblyAI
 app.post('/transcribe', async (req, res) => {
   const { url } = req.body;
   if (!url) {
+    console.error('No URL provided in /transcribe request');
     return res.status(400).json({ error: 'URL is required' });
   }
+  console.log(`Attempting to transcribe URL: ${url}`);
   try {
-    // Request transcription from AssemblyAI
     const transcript = await assemblyai.transcripts.create({
       audio_url: url,
     });
+    console.log(`Transcript requested, ID: ${transcript.id}`);
 
-    // Poll for transcription status with a 5-minute timeout
-    const maxWaitTime = 5 * 60 * 1000; // 5 minutes in milliseconds
+    const maxWaitTime = 5 * 60 * 1000;
     const startTime = Date.now();
     while (Date.now() - startTime < maxWaitTime) {
       const status = await assemblyai.transcripts.get(transcript.id);
+      console.log(`Transcription status: ${status.status}`);
       if (status.status === 'completed') {
+        console.log(`Transcription completed: ${status.text.substring(0, 100)}...`);
         return res.json({ transcription: status.text });
-      } else if (status.status === 'failed') {
-        throw new Error('Transcription failed');
+      } else if (status.status === 'failed' || status.status === 'error') {
+        throw new Error(`Transcription failed with status: ${status.status}`);
       }
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+      await new Promise(resolve => setTimeout(resolve, 5000));
     }
-    throw new Error('Transcription timed out');
+    throw new Error('Transcription timed out after 5 minutes');
   } catch (error) {
-    console.error(`Transcription error: ${error.message}`);
-    res.status(500).json({ error: 'Failed to transcribe video' });
+    console.error(`Transcription error for URL ${url}: ${error.message}`);
+    res.status(500).json({ error: `Failed to transcribe video: ${error.message}` });
   }
 });
 
-// Endpoint to handle chat with AI, including transcription
 app.post('/chat', upload, async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -110,11 +111,10 @@ app.post('/chat', upload, async (req, res) => {
       return;
     }
 
-    console.log(`Processing message "${userMessage}" with Assistant ID: ${ASSISTANT_ID}`);
-    console.log(`Received transcription: ${transcription ? transcription.substring(0, 100) + '...' : 'None'}`);
+    console.log(`Processing message: "${userMessage}"`);
+    console.log(`Transcription: ${transcription ? transcription.substring(0, 100) + '...' : 'None'}`);
 
     let assistantResponse = '';
-    // Explicitly include transcription as context for the AI
     let messageContent = transcription 
       ? `Here is the transcription of a video: ${transcription}\n\nThe user asks: ${userMessage}` 
       : userMessage;
@@ -220,7 +220,6 @@ app.post('/chat', upload, async (req, res) => {
       }
     }
 
-    // Stream the response word by word
     const words = assistantResponse.split(' ');
     for (let word of words) {
       res.write(`data: ${word}\n\n`);
@@ -236,7 +235,6 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
-// Health check endpoint
 app.get('/health', async (req, res) => {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
