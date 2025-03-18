@@ -55,25 +55,51 @@ verifyAssistant().then(() => {
   console.log('Assistant verification completed successfully');
 });
 
+// Function to normalize YouTube URLs
+function normalizeYouTubeUrl(url) {
+  const youtuBeRegex = /youtu\.be\/([\w-]{11})/;
+  const youtubeRegex = /youtube\.com\/watch\?v=([\w-]{11})/;
+  let videoId;
+
+  if (youtuBeRegex.test(url)) {
+    videoId = url.match(youtuBeRegex)[1];
+    return `https://www.youtube.com/watch?v=${videoId}`;
+  } else if (youtubeRegex.test(url)) {
+    videoId = url.match(youtubeRegex)[1];
+    return `https://www.youtube.com/watch?v=${videoId}`;
+  }
+  return url; // Return original if not a YouTube URL
+}
+
 app.post('/transcribe', async (req, res) => {
   const { url } = req.body;
   if (!url) {
     console.error('No URL provided in /transcribe request');
     return res.status(400).json({ error: 'URL is required' });
   }
-  console.log(`Attempting to transcribe URL: ${url}`);
+
+  const normalizedUrl = normalizeYouTubeUrl(url);
+  console.log(`Original URL: ${url}`);
+  console.log(`Normalized URL for transcription: ${normalizedUrl}`);
+
   try {
     const transcript = await assemblyai.transcripts.create({
-      audio_url: url,
+      audio_url: normalizedUrl,
+    }).catch(err => {
+      console.error(`Failed to create transcript: ${err.message}`);
+      throw new Error(`Failed to initiate transcription: ${err.message}`);
     });
     console.log(`Transcript requested, ID: ${transcript.id}, Status: ${transcript.status}`);
 
-    const maxWaitTime = 10 * 60 * 1000; // Increased to 10 minutes
+    const maxWaitTime = 10 * 60 * 1000; // 10 minutes
     const startTime = Date.now();
     let lastStatus = transcript.status;
 
     while (Date.now() - startTime < maxWaitTime) {
-      const status = await assemblyai.transcripts.get(transcript.id);
+      const status = await assemblyai.transcripts.get(transcript.id).catch(err => {
+        console.error(`Failed to get transcript status: ${err.message}`);
+        throw new Error(`Failed to check transcription status: ${err.message}`);
+      });
       if (status.status !== lastStatus) {
         console.log(`Transcription status updated: ${status.status}`);
         lastStatus = status.status;
@@ -87,10 +113,10 @@ app.post('/transcribe', async (req, res) => {
       }
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
-    console.error(`Transcription timed out after ${maxWaitTime / 60000} minutes for URL: ${url}`);
+    console.error(`Transcription timed out after ${maxWaitTime / 60000} minutes for URL: ${normalizedUrl}`);
     throw new Error('Transcription timed out after 10 minutes');
   } catch (error) {
-    console.error(`Transcription error for URL ${url}: ${error.message}`);
+    console.error(`Transcription error for URL ${normalizedUrl}: ${error.message}`);
     if (error.response) {
       console.error(`AssemblyAI API response: ${JSON.stringify(error.response.data)}`);
     }
@@ -98,7 +124,7 @@ app.post('/transcribe', async (req, res) => {
   }
 });
 
-// /chat endpoint remains unchanged for brevity; it’s assumed working if transcription succeeds
+// /chat endpoint unchanged for brevity
 app.post('/chat', upload, async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
