@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
 import multer from 'multer';
-import { createClient } from '@deepgram/sdk'; // Correct import for Deepgram SDK
+import { createClient } from '@deepgram/sdk';
+import axios from 'axios'; // Add axios for HTTP requests
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -24,14 +25,14 @@ const upload = multer({
 }).array('files', 5);
 
 const apiKey = process.env.OPENAI_API_KEY;
-const deepgramApiKey = process.env.DEEPGRAM_API_KEY; // New env variable
+const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
 if (!apiKey || !deepgramApiKey) {
   console.error('Missing API keys in environment (OPENAI_API_KEY or DEEPGRAM_API_KEY)');
   process.exit(1);
 }
 
 const openai = new OpenAI({ apiKey });
-const deepgram = createClient(deepgramApiKey); // Correct instantiation using createClient
+const deepgram = createClient(deepgramApiKey);
 const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT";
 let thread;
 
@@ -55,23 +56,114 @@ verifyAssistant().then(() => {
   console.log('Assistant verification completed successfully');
 });
 
-function normalizeUrl(url) {
-  // Works for both YouTube and X URLs
-  const youtuBeRegex = /youtu\.be\/([\w-]{11})/;
-  const youtubeRegex = /youtube\.com\/watch\?v=([\w-]{11})/;
-  const xRegex = /x\.com\/i\/status\/(\d+)/;
-  let videoId;
-
-  if (youtuBeRegex.test(url)) {
-    videoId = url.match(youtuBeRegex)[1];
-    return `https://www.youtube.com/watch?v=${videoId}`;
-  } else if (youtubeRegex.test(url)) {
-    videoId = url.match(youtubeRegex)[1];
-    return `https://www.youtube.com/watch?v=${videoId}`;
-  } else if (xRegex.test(url)) {
-    return url; // Keep X URL as-is for Deepgram
+function extractVideoId(url) {
+  // Handles various YouTube URL formats
+  const youtubeRegexes = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/\?v=)([\w-]{11})/,
+    /(?:youtube\.com\/shorts\/)([\w-]{11})/
+  ];
+  
+  for (const regex of youtubeRegexes) {
+    const match = url.match(regex);
+    if (match) return { platform: 'youtube', id: match[1] };
   }
-  return url;
+  
+  // Handle Twitter/X URLs
+  const twitterRegexes = [
+    /(?:twitter\.com|x\.com)\/\w+\/status\/(\d+)/,
+    /(?:twitter\.com|x\.com)\/i\/status\/(\d+)/
+  ];
+  
+  for (const regex of twitterRegexes) {
+    const match = url.match(regex);
+    if (match) return { platform: 'twitter', id: match[1] };
+  }
+  
+  return { platform: 'unknown', id: null };
+}
+
+async function getTranscriptionFromUrl(url) {
+  const { platform, id } = extractVideoId(url);
+  console.log(`Detected platform: ${platform}, ID: ${id}`);
+  
+  try {
+    // For YouTube videos, we'll use the video directly
+    if (platform === 'youtube' && id) {
+      const youtubeUrl = `https://www.youtube.com/watch?v=${id}`;
+      console.log(`Transcribing YouTube video: ${youtubeUrl}`);
+      
+      const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
+        { url: youtubeUrl },
+        {
+          model: 'nova-2',
+          language: 'en',
+          smart_format: true,
+          diarize: true, // Enable speaker diarization
+          punctuate: true,
+          utterances: true
+        }
+      );
+      
+      if (error) throw error;
+      
+      if (!result.results || !result.results.channels || !result.results.channels[0].alternatives) {
+        throw new Error('No transcription data received from Deepgram');
+      }
+      
+      const transcription = result.results.channels[0].alternatives[0].transcript;
+      return transcription;
+    }
+    
+    // For Twitter/X videos
+    if (platform === 'twitter' && id) {
+      const twitterUrl = `https://twitter.com/i/status/${id}`;
+      console.log(`Transcribing Twitter/X video: ${twitterUrl}`);
+      
+      const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
+        { url: twitterUrl },
+        {
+          model: 'nova-2',
+          language: 'en',
+          smart_format: true,
+          diarize: true,
+          punctuate: true
+        }
+      );
+      
+      if (error) throw error;
+      
+      if (!result.results || !result.results.channels || !result.results.channels[0].alternatives) {
+        throw new Error('No transcription data received from Deepgram');
+      }
+      
+      const transcription = result.results.channels[0].alternatives[0].transcript;
+      return transcription;
+    }
+    
+    // If we can't identify the platform or ID, try direct transcription
+    console.log(`Transcribing URL directly: ${url}`);
+    const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
+      { url },
+      {
+        model: 'nova-2',
+        language: 'en',
+        smart_format: true,
+        punctuate: true
+      }
+    );
+    
+    if (error) throw error;
+    
+    if (!result.results || !result.results.channels || !result.results.channels[0].alternatives) {
+      throw new Error('No transcription data received from Deepgram');
+    }
+    
+    const transcription = result.results.channels[0].alternatives[0].transcript;
+    return transcription;
+  } catch (error) {
+    console.error(`Error transcribing URL: ${error.message}`);
+    throw error;
+  }
 }
 
 app.post('/transcribe', async (req, res) => {
@@ -80,39 +172,111 @@ app.post('/transcribe', async (req, res) => {
     console.error('No URL provided in /transcribe request');
     return res.status(400).json({ error: 'URL is required' });
   }
-
-  const normalizedUrl = normalizeUrl(url);
-  console.log(`Original URL: ${url}`);
-  console.log(`Normalized URL for transcription: ${normalizedUrl}`);
-
+  
+  console.log(`Processing transcription request for URL: ${url}`);
+  
   try {
-    // Use Deepgram to transcribe directly from the URL
-    const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
-      {
-        url: normalizedUrl,
-      },
-      {
-        model: 'nova-2', // High-accuracy model
-        language: 'en', // Default to English, adjust as needed
-        smart_format: true, // Improves formatting
-      }
-    );
-
-    if (error) throw error;
-
-    if (!result.results || !result.results.channels || !result.results.channels[0].alternatives) {
-      throw new Error('No transcription data received from Deepgram');
-    }
-
-    const transcription = result.results.channels[0].alternatives[0].transcript;
+    const transcription = await getTranscriptionFromUrl(url);
     console.log(`Transcription completed: ${transcription.substring(0, 100)}...`);
     res.json({ transcription });
   } catch (error) {
-    console.error(`Transcription error for URL ${normalizedUrl}: ${error.message}`);
-    if (error.response) {
-      console.error(`Deepgram API response: ${JSON.stringify(error.response.data)}`);
-    }
+    console.error(`Transcription error for URL ${url}: ${error.message}`);
     res.status(500).json({ error: `Failed to transcribe video: ${error.message}` });
+  }
+});
+
+// New endpoint that combines transcription and chat in one request
+app.post('/video-chat', async (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+
+  try {
+    const { url, message } = req.body;
+    
+    if (!url) {
+      res.write(`data: Please provide a video URL\n\n`);
+      res.write(`data: [END]\n\n`);
+      res.end();
+      return;
+    }
+    
+    console.log(`Processing video chat request for URL: ${url}`);
+    
+    // Get transcription from URL
+    let transcription;
+    try {
+      res.write(`data: Transcribing video...\n\n`);
+      transcription = await getTranscriptionFromUrl(url);
+      res.write(`data: Transcription complete. Processing with AI...\n\n`);
+    } catch (error) {
+      console.error(`Error getting transcription: ${error.message}`);
+      res.write(`data: Failed to transcribe video: ${error.message}\n\n`);
+      res.write(`data: [END]\n\n`);
+      res.end();
+      return;
+    }
+    
+    // Create thread if it doesn't exist
+    if (!thread) {
+      thread = await openai.beta.threads.create();
+      console.log(`New thread created with ID: ${thread.id}`);
+    }
+    
+    // Format the message with transcription and user query
+    const userQuery = message || 'Summarize this video';
+    const fullMessage = `VIDEO TRANSCRIPTION:\n${transcription}\n\nUSER QUERY: ${userQuery}`;
+    
+    // Send to assistant
+    await openai.beta.threads.messages.create(thread.id, { 
+      role: 'user', 
+      content: fullMessage 
+    });
+    
+    const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
+    
+    let timeout = 60; // Increased timeout for processing longer transcriptions
+    const startTime = Date.now();
+    
+    while (true) {
+      const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      
+      if (runStatus.status === 'completed') {
+        const messages = await openai.beta.threads.messages.list(thread.id);
+        const assistantResponse = messages.data
+          .filter(msg => msg.role === 'assistant' && msg.run_id === run.id)
+          .sort((a, b) => b.created_at - a.created_at)[0]
+          .content[0].text.value;
+        
+        // Stream the response back word by word
+        const words = assistantResponse.split(' ');
+        for (let word of words) {
+          res.write(`data: ${word}\n\n`);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        res.write(`data: [END]\n\n`);
+        res.end();
+        break;
+      }
+      
+      if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
+        throw new Error(`Run ${runStatus.status}: ${runStatus.last_error?.message || 'Unknown error'}`);
+      }
+      
+      if ((Date.now() - startTime) / 1000 > timeout) {
+        throw new Error('Request timed out');
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  } catch (error) {
+    console.error(`Error in /video-chat: ${error.message}`);
+    res.write(`data: Error: ${error.message}\n\n`);
+    res.write(`data: [END]\n\n`);
+    res.end();
   }
 });
 
@@ -144,7 +308,7 @@ app.post('/chat', upload, async (req, res) => {
 
     let assistantResponse = '';
     let messageContent = transcription 
-      ? `Here is the transcription of a video: ${transcription}\n\nThe user asks: ${userMessage}` 
+      ? `VIDEO TRANSCRIPTION:\n${transcription}\n\nUSER QUERY: ${userMessage}` 
       : userMessage;
 
     if (files && files.length > 0) {
@@ -271,7 +435,12 @@ app.get('/health', async (req, res) => {
       assistant_id: ASSISTANT_ID,
       assistant_name: assistant.name,
       assistant_model: assistant.model,
-      tools_enabled: assistant.tools.map(tool => tool.type)
+      tools_enabled: assistant.tools.map(tool => tool.type),
+      features: {
+        transcription: true,
+        image_analysis: true,
+        file_upload: true
+      }
     });
   } catch (error) {
     res.status(500).json({
