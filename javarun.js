@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
 import multer from 'multer';
-import { Deepgram } from 'deepgram-sdk'; // New import
+import { createClient } from '@deepgram/sdk'; // New import
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
