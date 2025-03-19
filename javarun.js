@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
 import multer from 'multer';
-import { createClient } from '@deepgram/sdk'; // New import
+import { createClient } from '@deepgram/sdk'; // Correct import for Deepgram SDK
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,7 +31,7 @@ if (!apiKey || !deepgramApiKey) {
 }
 
 const openai = new OpenAI({ apiKey });
-const deepgram = new Deepgram(deepgramApiKey);
+const deepgram = createClient(deepgramApiKey); // Correct instantiation using createClient
 const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT";
 let thread;
 
@@ -87,18 +87,24 @@ app.post('/transcribe', async (req, res) => {
 
   try {
     // Use Deepgram to transcribe directly from the URL
-    const response = await deepgram.listen.prerecorded({
-      url: normalizedUrl,
-      model: 'nova-2', // High-accuracy model
-      language: 'en', // Default to English, adjust as needed
-      smart_format: true, // Improves formatting
-    });
+    const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
+      {
+        url: normalizedUrl,
+      },
+      {
+        model: 'nova-2', // High-accuracy model
+        language: 'en', // Default to English, adjust as needed
+        smart_format: true, // Improves formatting
+      }
+    );
 
-    if (!response.results || !response.results.channels || !response.results.channels[0].alternatives) {
+    if (error) throw error;
+
+    if (!result.results || !result.results.channels || !result.results.channels[0].alternatives) {
       throw new Error('No transcription data received from Deepgram');
     }
 
-    const transcription = response.results.channels[0].alternatives[0].transcript;
+    const transcription = result.results.channels[0].alternatives[0].transcript;
     console.log(`Transcription completed: ${transcription.substring(0, 100)}...`);
     res.json({ transcription });
   } catch (error) {
