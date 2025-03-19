@@ -6,7 +6,10 @@ import { dirname, join } from 'path';
 import cors from 'cors';
 import multer from 'multer';
 import { createClient } from '@deepgram/sdk';
-import axios from 'axios'; // Add axios for HTTP requests
+import ytdl from 'ytdl-core'; // Import ytdl-core for YouTube processing
+import fetch from 'node-fetch';
+import fs from 'fs';
+import { PassThrough } from 'stream';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -82,62 +85,111 @@ function extractVideoId(url) {
   return { platform: 'unknown', id: null };
 }
 
+async function transcribeYouTubeVideo(videoId) {
+  console.log(`Processing YouTube video ID: ${videoId}`);
+  
+  try {
+    // Check if the video exists and is accessible
+    const videoInfo = await ytdl.getInfo(videoId);
+    console.log(`Successfully retrieved info for video: ${videoInfo.videoDetails.title}`);
+    
+    // Stream the audio only
+    const audioStream = ytdl(videoId, { 
+      quality: 'lowestaudio',
+      filter: 'audioonly' 
+    });
+    
+    // Set up a PassThrough stream to collect the audio data
+    const bufferStream = new PassThrough();
+    audioStream.pipe(bufferStream);
+    
+    // Collect the audio data into a buffer
+    const chunks = [];
+    for await (const chunk of bufferStream) {
+      chunks.push(chunk);
+    }
+    
+    const audioBuffer = Buffer.concat(chunks);
+    console.log(`Retrieved audio data: ${audioBuffer.length} bytes`);
+    
+    // Use Deepgram to transcribe the audio buffer
+    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
+      audioBuffer,
+      {
+        model: 'nova-2',
+        language: 'en',
+        smart_format: true,
+        diarize: true,
+        punctuate: true,
+        utterances: true
+      }
+    );
+    
+    if (error) throw error;
+    
+    if (!result.results || !result.results.channels || !result.results.channels[0].alternatives) {
+      throw new Error('No transcription data received from Deepgram');
+    }
+    
+    const transcription = result.results.channels[0].alternatives[0].transcript;
+    console.log(`Transcription complete for video: ${videoInfo.videoDetails.title}`);
+    
+    return {
+      transcription,
+      videoTitle: videoInfo.videoDetails.title,
+      videoAuthor: videoInfo.videoDetails.author.name
+    };
+  } catch (error) {
+    console.error(`Error transcribing YouTube video: ${error.message}`);
+    throw error;
+  }
+}
+
+async function transcribeTwitterVideo(tweetId) {
+  console.log(`Processing Twitter/X video with ID: ${tweetId}`);
+  
+  try {
+    const twitterUrl = `https://twitter.com/i/status/${tweetId}`;
+    
+    // Use Deepgram to transcribe the URL directly
+    const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
+      { url: twitterUrl },
+      {
+        model: 'nova-2',
+        language: 'en',
+        smart_format: true,
+        diarize: true,
+        punctuate: true
+      }
+    );
+    
+    if (error) throw error;
+    
+    if (!result.results || !result.results.channels || !result.results.channels[0].alternatives) {
+      throw new Error('No transcription data received from Deepgram');
+    }
+    
+    const transcription = result.results.channels[0].alternatives[0].transcript;
+    return { transcription, videoTitle: `Twitter Video ${tweetId}` };
+  } catch (error) {
+    console.error(`Error transcribing Twitter video: ${error.message}`);
+    throw error;
+  }
+}
+
 async function getTranscriptionFromUrl(url) {
   const { platform, id } = extractVideoId(url);
   console.log(`Detected platform: ${platform}, ID: ${id}`);
   
   try {
-    // For YouTube videos, we'll use the video directly
+    // For YouTube videos
     if (platform === 'youtube' && id) {
-      const youtubeUrl = `https://www.youtube.com/watch?v=${id}`;
-      console.log(`Transcribing YouTube video: ${youtubeUrl}`);
-      
-      const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
-        { url: youtubeUrl },
-        {
-          model: 'nova-2',
-          language: 'en',
-          smart_format: true,
-          diarize: true, // Enable speaker diarization
-          punctuate: true,
-          utterances: true
-        }
-      );
-      
-      if (error) throw error;
-      
-      if (!result.results || !result.results.channels || !result.results.channels[0].alternatives) {
-        throw new Error('No transcription data received from Deepgram');
-      }
-      
-      const transcription = result.results.channels[0].alternatives[0].transcript;
-      return transcription;
+      return await transcribeYouTubeVideo(id);
     }
     
     // For Twitter/X videos
     if (platform === 'twitter' && id) {
-      const twitterUrl = `https://twitter.com/i/status/${id}`;
-      console.log(`Transcribing Twitter/X video: ${twitterUrl}`);
-      
-      const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
-        { url: twitterUrl },
-        {
-          model: 'nova-2',
-          language: 'en',
-          smart_format: true,
-          diarize: true,
-          punctuate: true
-        }
-      );
-      
-      if (error) throw error;
-      
-      if (!result.results || !result.results.channels || !result.results.channels[0].alternatives) {
-        throw new Error('No transcription data received from Deepgram');
-      }
-      
-      const transcription = result.results.channels[0].alternatives[0].transcript;
-      return transcription;
+      return await transcribeTwitterVideo(id);
     }
     
     // If we can't identify the platform or ID, try direct transcription
@@ -159,7 +211,7 @@ async function getTranscriptionFromUrl(url) {
     }
     
     const transcription = result.results.channels[0].alternatives[0].transcript;
-    return transcription;
+    return { transcription, videoTitle: `Unknown Video Source` };
   } catch (error) {
     console.error(`Error transcribing URL: ${error.message}`);
     throw error;
@@ -176,9 +228,13 @@ app.post('/transcribe', async (req, res) => {
   console.log(`Processing transcription request for URL: ${url}`);
   
   try {
-    const transcription = await getTranscriptionFromUrl(url);
-    console.log(`Transcription completed: ${transcription.substring(0, 100)}...`);
-    res.json({ transcription });
+    const result = await getTranscriptionFromUrl(url);
+    console.log(`Transcription completed for "${result.videoTitle}": ${result.transcription.substring(0, 100)}...`);
+    res.json({ 
+      transcription: result.transcription,
+      videoTitle: result.videoTitle,
+      videoAuthor: result.videoAuthor
+    });
   } catch (error) {
     console.error(`Transcription error for URL ${url}: ${error.message}`);
     res.status(500).json({ error: `Failed to transcribe video: ${error.message}` });
@@ -206,10 +262,10 @@ app.post('/video-chat', async (req, res) => {
     console.log(`Processing video chat request for URL: ${url}`);
     
     // Get transcription from URL
-    let transcription;
+    let transcriptionResult;
     try {
       res.write(`data: Transcribing video...\n\n`);
-      transcription = await getTranscriptionFromUrl(url);
+      transcriptionResult = await getTranscriptionFromUrl(url);
       res.write(`data: Transcription complete. Processing with AI...\n\n`);
     } catch (error) {
       console.error(`Error getting transcription: ${error.message}`);
@@ -227,7 +283,7 @@ app.post('/video-chat', async (req, res) => {
     
     // Format the message with transcription and user query
     const userQuery = message || 'Summarize this video';
-    const fullMessage = `VIDEO TRANSCRIPTION:\n${transcription}\n\nUSER QUERY: ${userQuery}`;
+    const fullMessage = `VIDEO TITLE: ${transcriptionResult.videoTitle}\n${transcriptionResult.videoAuthor ? `VIDEO AUTHOR: ${transcriptionResult.videoAuthor}\n` : ''}VIDEO URL: ${url}\n\nVIDEO TRANSCRIPTION:\n${transcriptionResult.transcription}\n\nUSER QUERY: ${userQuery}`;
     
     // Send to assistant
     await openai.beta.threads.messages.create(thread.id, { 
@@ -295,6 +351,9 @@ app.post('/chat', upload, async (req, res) => {
 
     const userMessage = req.body.message || '';
     const transcription = req.body.transcription || '';
+    const videoTitle = req.body.videoTitle || '';
+    const videoAuthor = req.body.videoAuthor || '';
+    const videoUrl = req.body.videoUrl || '';
     const files = req.files;
 
     if (!userMessage && (!files || files.length === 0) && !transcription) {
@@ -308,7 +367,7 @@ app.post('/chat', upload, async (req, res) => {
 
     let assistantResponse = '';
     let messageContent = transcription 
-      ? `VIDEO TRANSCRIPTION:\n${transcription}\n\nUSER QUERY: ${userMessage}` 
+      ? `VIDEO TITLE: ${videoTitle}\n${videoAuthor ? `VIDEO AUTHOR: ${videoAuthor}\n` : ''}${videoUrl ? `VIDEO URL: ${videoUrl}\n\n` : ''}VIDEO TRANSCRIPTION:\n${transcription}\n\nUSER QUERY: ${userMessage}` 
       : userMessage;
 
     if (files && files.length > 0) {
@@ -427,6 +486,31 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
+// Dedicated endpoint for YouTube transcription
+app.post('/youtube-transcribe', async (req, res) => {
+  const { url } = req.body;
+  if (!url) {
+    return res.status(400).json({ error: 'YouTube URL is required' });
+  }
+  
+  try {
+    const { platform, id } = extractVideoId(url);
+    if (platform !== 'youtube' || !id) {
+      return res.status(400).json({ error: 'Invalid YouTube URL' });
+    }
+    
+    const result = await transcribeYouTubeVideo(id);
+    res.json({
+      transcription: result.transcription,
+      videoTitle: result.videoTitle,
+      videoAuthor: result.videoAuthor
+    });
+  } catch (error) {
+    console.error(`YouTube transcription error: ${error.message}`);
+    res.status(500).json({ error: `Failed to transcribe YouTube video: ${error.message}` });
+  }
+});
+
 app.get('/health', async (req, res) => {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
@@ -438,6 +522,8 @@ app.get('/health', async (req, res) => {
       tools_enabled: assistant.tools.map(tool => tool.type),
       features: {
         transcription: true,
+        youtube_transcription: true,
+        twitter_transcription: true,
         image_analysis: true,
         file_upload: true
       }
