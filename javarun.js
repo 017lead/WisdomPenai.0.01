@@ -7,10 +7,8 @@ import cors from 'cors';
 import multer from 'multer';
 import { createClient } from '@deepgram/sdk';
 import ytdl from 'ytdl-core';
-import twtUrl from 'twitter-url-direct';
 import fetch from 'node-fetch';
-import fs from 'fs';
-import { PassThrough } from 'stream';
+import { ApifyClient } from 'apify-client';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,24 +28,22 @@ const upload = multer({
 
 const apiKey = process.env.OPENAI_API_KEY;
 const deepgramApiKey = process.env.DEEPGRAM_API_KEY;
-if (!apiKey || !deepgramApiKey) {
-  console.error('Missing API keys in environment (OPENAI_API_KEY or DEEPGRAM_API_KEY)');
+const apifyApiToken = process.env.APIFY_API_TOKEN; // Add this to your .env file
+if (!apiKey || !deepgramApiKey || !apifyApiToken) {
+  console.error('Missing API keys in environment (OPENAI_API_KEY, DEEPGRAM_API_KEY, or APIFY_API_TOKEN)');
   process.exit(1);
 }
 
 const openai = new OpenAI({ apiKey });
 const deepgram = createClient(deepgramApiKey);
+const apifyClient = new ApifyClient({ token: apifyApiToken });
 const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT";
 let thread;
 
 async function verifyAssistant() {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
-    console.log(`Assistant Verified:
-      ID: ${assistant.id}
-      Name: ${assistant.name}
-      Model: ${assistant.model}
-      Tools: ${JSON.stringify(assistant.tools)}`);
+    console.log(`Assistant Verified: ID: ${assistant.id}, Name: ${assistant.name}`);
     return true;
   } catch (error) {
     console.error(`Failed to verify assistant ${ASSISTANT_ID}: ${error.message}`);
@@ -82,7 +78,6 @@ async function transcribeYouTubeVideo(videoId) {
     const audioBuffer = Buffer.concat(chunks);
     console.log(`Retrieved audio data: ${audioBuffer.length} bytes`);
 
-    // Try Deepgram first
     try {
       const { result, error } = await deepgram.listen.prerecorded.transcribeFile(
         audioBuffer,
@@ -98,7 +93,6 @@ async function transcribeYouTubeVideo(videoId) {
       };
     } catch (deepgramError) {
       console.log(`Deepgram failed: ${deepgramError.message}, falling back to Whisper`);
-      // Fallback to Whisper
       const transcriptionResponse = await openai.audio.transcriptions.create({
         file: audioBuffer,
         model: 'whisper-1'
@@ -119,41 +113,23 @@ async function transcribeYouTubeVideo(videoId) {
 async function transcribeTwitterVideo(tweetUrl) {
   console.log(`Processing Twitter/X video URL: ${tweetUrl}`);
   try {
-    const response = await twtUrl(tweetUrl);
-    if (!response.found || !response.download || response.download.length === 0) {
-      throw new Error('No video found in the tweet');
-    }
-    const videoUrl = response.download[0].url;
-    console.log(`Extracted video URL: ${videoUrl}`);
+    const run = await apifyClient.actor("yeahjjyy/twitter-x-video-transcript-scraper-free-2025").call({
+      url: tweetUrl // Assuming the Actor accepts a URL input; check Apify docs for exact input schema
+    });
 
-    // Try Deepgram with the video URL
-    try {
-      const { result, error } = await deepgram.listen.prerecorded.transcribeUrl(
-        { url: videoUrl },
-        { model: 'nova-2', language: 'en', smart_format: true, punctuate: true }
-      );
-      if (error) throw error;
-      const transcription = result.results.channels[0].alternatives[0].transcript;
-      console.log(`Deepgram transcription complete for Twitter video`);
-      return {
-        transcription,
-        videoTitle: response.title || `Twitter Video ${response.tweet_id}`
-      };
-    } catch (deepgramError) {
-      console.log(`Deepgram failed: ${deepgramError.message}, falling back to Whisper`);
-      const fetchResponse = await fetch(videoUrl);
-      const arrayBuffer = await fetchResponse.arrayBuffer();
-      const videoBuffer = Buffer.from(arrayBuffer);
-      const transcriptionResponse = await openai.audio.transcriptions.create({
-        file: videoBuffer,
-        model: 'whisper-1'
-      });
-      console.log(`Whisper transcription complete for Twitter video`);
-      return {
-        transcription: transcriptionResponse.text,
-        videoTitle: response.title || `Twitter Video ${response.tweet_id}`
-      };
+    const dataset = await apifyClient.dataset(run.defaultDatasetId).listItems();
+    const items = dataset.items;
+
+    if (!items || items.length === 0) {
+      throw new Error('No transcription data returned from Apify Actor');
     }
+
+    const result = items[0]; // Assuming first item contains the transcription
+    console.log(`Apify transcription complete for Twitter/X video`);
+    return {
+      transcription: result.transcript || result.transcription || 'No transcript available',
+      videoTitle: result.title || `Twitter Video ${extractVideoId(tweetUrl).id}`
+    };
   } catch (error) {
     console.error(`Twitter transcription error: ${error.message}`);
     throw error;
@@ -163,32 +139,22 @@ async function transcribeTwitterVideo(tweetUrl) {
 async function getTranscriptionFromUrl(url) {
   const { platform, id } = extractVideoId(url);
   console.log(`Detected platform: ${platform}, ID: ${id}`);
-
   try {
-    if (platform === 'youtube' && id) {
-      return await transcribeYouTubeVideo(id);
-    } else if (platform === 'twitter' && id) {
-      return await transcribeTwitterVideo(url);
-    } else {
-      throw new Error('Unsupported platform or invalid URL');
-    }
+    if (platform === 'youtube' && id) return await transcribeYouTubeVideo(id);
+    if (platform === 'twitter' && id) return await transcribeTwitterVideo(url);
+    throw new Error('Unsupported platform or invalid URL');
   } catch (error) {
-    console.error(`Error transcribing URL ${url}: ${error.message}`);
     throw error;
   }
 }
 
 app.post('/transcribe', async (req, res) => {
   const { url } = req.body;
-  if (!url) {
-    console.error('No URL provided in /transcribe request');
-    return res.status(400).json({ error: 'URL is required' });
-  }
+  if (!url) return res.status(400).json({ error: 'URL is required' });
 
   console.log(`Processing transcription request for URL: ${url}`);
   try {
     const result = await getTranscriptionFromUrl(url);
-    console.log(`Transcription completed for "${result.videoTitle}"`);
     res.json({
       transcription: result.transcription,
       videoTitle: result.videoTitle,
