@@ -13,7 +13,7 @@
     
   },
   "dependencies": {
-    "twitter-url-direct": "^1.0.2",
+   "apify-client": "^2.7.1",
     "axios": "^1.8.4",
     "assemblyai": "^4.7.1",
     "@deepgram/sdk": "^3.7.0",
