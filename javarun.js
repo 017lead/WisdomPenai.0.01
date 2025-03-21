@@ -17,11 +17,13 @@ const port = process.env.PORT || 10000;
 app.use(express.json());
 app.use(cors());
 
+// Configure multer for file uploads (max 5MB, up to 5 files)
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
 }).array('files', 5);
 
+// Initialize OpenAI client
 const apiKey = process.env.OPENAI_API_KEY;
 if (!apiKey) {
   console.error('Missing API key in environment (OPENAI_API_KEY)');
@@ -29,9 +31,10 @@ if (!apiKey) {
 }
 
 const openai = new OpenAI({ apiKey });
-const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT";
+const ASSISTANT_ID = "your-assistant-id"; // Replace with your actual assistant ID
 let thread;
 
+// Verify assistant exists
 async function verifyAssistant() {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
@@ -45,60 +48,52 @@ async function verifyAssistant() {
 
 verifyAssistant().then(() => console.log('Assistant verification completed'));
 
+// Chat endpoint
 app.post('/chat', upload, async (req, res) => {
+  // Set up SSE headers
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive'
+    'Connection': 'keep-alive',
   });
 
   try {
+    // Create a thread if it doesn’t exist
     if (!thread) {
       thread = await openai.beta.threads.create();
       console.log(`New thread created with ID: ${thread.id}`);
     }
 
     const userMessage = req.body.message || '';
-    const transcription = req.body.transcription || '';
-    const videoTitle = req.body.videoTitle || '';
-    const videoAuthor = req.body.videoAuthor || '';
-    const videoUrl = req.body.videoUrl || '';
     const files = req.files;
 
-    if (!userMessage && (!files || files.length === 0) && !transcription) {
-      res.write(`data: Please provide a message, files, or transcription\n\n`);
+    // Check for valid input
+    if (!userMessage && (!files || files.length === 0)) {
+      res.write(`data: Please provide a message or files\n\n`);
       res.write(`data: [END]\n\n`);
       res.end();
       return;
     }
 
-    let messageContent = transcription
-      ? `VIDEO TITLE: ${videoTitle}\n${videoAuthor ? `VIDEO AUTHOR: ${videoAuthor}\n` : ''}${videoUrl ? `VIDEO URL: ${videoUrl}\n\n` : ''}VIDEO TRANSCRIPTION:\n${transcription}\n\nUSER QUERY: ${userMessage}`
-      : userMessage;
-
     let assistantResponse = '';
+
+    // Handle file uploads or text input
     if (files && files.length > 0) {
       const hasImage = files.some(file => file.mimetype.startsWith('image/'));
       if (hasImage) {
-        const threadMessages = await openai.beta.threads.messages.list(thread.id);
-        const priorMessages = threadMessages.data.map(msg => ({
-          role: msg.role,
-          content: msg.content[0].text.value
-        })).reverse();
-
+        // Handle image input with GPT-4o Mini for vision
         const imageFile = files.find(file => file.mimetype.startsWith('image/'));
         const base64Image = imageFile.buffer.toString('base64');
         const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
 
         const messages = [
-          ...priorMessages,
           {
             role: 'user',
             content: [
-              { type: 'text', text: messageContent || 'Describe this image' },
-              { type: 'image_url', image_url: { url: imageUrl } }
-            ]
-          }
+              { type: 'text', text: userMessage || 'Describe this image' },
+              { type: 'image_url', image_url: { url: imageUrl } },
+            ],
+          },
         ];
 
         const visionResponse = await openai.chat.completions.create({
@@ -108,16 +103,18 @@ app.post('/chat', upload, async (req, res) => {
         });
         assistantResponse = visionResponse.choices[0].message.content;
 
+        // Add to thread for context
         await openai.beta.threads.messages.create(thread.id, {
           role: 'user',
-          content: messageContent || 'Image uploaded'
+          content: userMessage || 'Image uploaded',
         });
         await openai.beta.threads.messages.create(thread.id, {
           role: 'assistant',
-          content: assistantResponse
+          content: assistantResponse,
         });
       } else {
-        let messageOptions = { role: 'user', content: messageContent || 'File uploaded' };
+        // Handle other file types
+        let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
         const uploadedFile = await openai.files.create({
           file: files[0].buffer,
           purpose: 'assistants',
@@ -149,9 +146,10 @@ app.post('/chat', upload, async (req, res) => {
         }
       }
     } else {
+      // Handle text-only input
       await openai.beta.threads.messages.create(thread.id, {
         role: 'user',
-        content: messageContent
+        content: userMessage,
       });
       const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
 
@@ -177,12 +175,44 @@ app.post('/chat', upload, async (req, res) => {
       }
     }
 
+    // Stream the main response word by word
     const words = assistantResponse.split(' ');
     for (let word of words) {
       res.write(`data: ${word}\n\n`);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 100)); // Simulate streaming delay
     }
     res.write(`data: [END]\n\n`);
+
+    // Extract sources using GPT-4o Mini
+    const sourcesResponse = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Extract the Quran verses and Hadith sources from the following text in the format: Quran 1:2, Quran 4:3, Hadith Bukhari 2:100, etc. Only provide the sources, one per line.'
+        },
+        {
+          role: 'user',
+          content: assistantResponse
+        }
+      ],
+      max_tokens: 100,
+    });
+
+    // Parse and filter sources
+    const sourcesContent = sourcesResponse.choices[0].message.content;
+    const sourcesLines = sourcesContent.split('\n');
+    const sources = sourcesLines.filter(line =>
+      line.match(/^Quran \d+:\d+$/) || line.match(/^Hadith [A-Za-z]+ \d+:\d+$/)
+    );
+
+    // Stream the sources
+    res.write(`data: [SOURCES]\n\n`);
+    for (let source of sources) {
+      res.write(`data: ${source.trim()}\n\n`);
+    }
+    res.write(`data: [END_SOURCES]\n\n`);
+
     res.end();
   } catch (error) {
     console.error(`Error in /chat: ${error.message}`);
@@ -192,6 +222,7 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
+// Health check endpoint
 app.get('/health', async (req, res) => {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
@@ -214,6 +245,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Start the server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
   console.log(`Using assistant ID: ${ASSISTANT_ID}`);
