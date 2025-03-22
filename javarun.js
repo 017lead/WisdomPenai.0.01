@@ -77,43 +77,6 @@ app.post('/chat', upload, async (req, res) => {
 
     let assistantResponse = '';
 
-    // Handle source extraction command
-    const sourceExtractionPattern = /^Extract sources from this response:\s*"(.*)"\s*$/;
-    const match = userMessage.match(sourceExtractionPattern);
-    if (match) {
-      const mainMessage = match[1].trim();
-
-      // Extract sources using GPT-4o Mini
-      const sourcesResponse = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'Extract Quran verses and Hadith sources from the following text in the format: Quran 1:2, Hadith Bukhari 2:100, etc. Output only the sources, one per line. If no sources are found, return an empty response with no text.'
-          },
-          {
-            role: 'user',
-            content: mainMessage
-          }
-        ],
-        max_tokens: 100,
-      });
-
-      // Parse and filter sources
-      const sourcesContent = sourcesResponse.choices[0].message.content.trim();
-      const sources = sourcesContent ? sourcesContent.split('\n').filter(line =>
-        line.match(/^Quran \d+:\d+$/) || line.match(/^Hadith [A-Za-z]+ \d+:\d+$/)
-      ) : [];
-
-      // Stream the sources
-      for (let source of sources) {
-        res.write(`data: ${source.trim()}\n\n`);
-      }
-      res.write(`data: [END]\n\n`);
-      res.end();
-      return;
-    }
-
     // Handle file uploads or text input
     if (files && files.length > 0) {
       const hasImage = files.some(file => file.mimetype.startsWith('image/'));
@@ -150,7 +113,7 @@ app.post('/chat', upload, async (req, res) => {
           content: assistantResponse,
         });
       } else {
-        // Handle other file types with main assistant
+        // Handle other file types with main assistant (ASSISTANT_ID)
         let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
         const uploadedFile = await openai.files.create({
           file: files[0].buffer,
@@ -183,7 +146,7 @@ app.post('/chat', upload, async (req, res) => {
         }
       }
     } else {
-      // Handle regular text input with main assistant
+      // Handle regular text input with main assistant (ASSISTANT_ID)
       await openai.beta.threads.messages.create(thread.id, {
         role: 'user',
         content: userMessage,
@@ -222,6 +185,60 @@ app.post('/chat', upload, async (req, res) => {
     res.end();
   } catch (error) {
     console.error(`Error in /chat: ${error.message}`);
+    res.write(`data: Error: ${error.message}\n\n`);
+    res.write(`data: [END]\n\n`);
+    res.end();
+  }
+});
+
+// Source extraction endpoint using GPT-4o-mini
+app.post('/extract-sources', async (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+
+  try {
+    const message = req.body.message || '';
+    if (!message) {
+      res.write(`data: Error: No message provided for source extraction\n\n`);
+      res.write(`data: [END]\n\n`);
+      res.end();
+      return;
+    }
+
+    // Extract sources using GPT-4o Mini
+    const sourcesResponse = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'Extract Quran verses and Hadith sources from the following text in the format: Quran 1:2, Hadith Bukhari 2:100, etc. Output only the sources, one per line. If no sources are found, return an empty response with no text.'
+        },
+        {
+          role: 'user',
+          content: message
+        }
+      ],
+      max_tokens: 100,
+    });
+
+    // Parse and filter sources
+    const sourcesContent = sourcesResponse.choices[0].message.content.trim();
+    const sources = sourcesContent ? sourcesContent.split('\n').filter(line =>
+      line.match(/^Quran \d+:\d+(?:-\d+)?$/) || 
+      line.match(/^Hadith [A-Za-z]+ \d+:\d+$/)
+    ) : [];
+
+    // Stream the sources
+    for (let source of sources) {
+      res.write(`data: ${source.trim()}\n\n`);
+    }
+    res.write(`data: [END]\n\n`);
+    res.end();
+  } catch (error) {
+    console.error(`Error in /extract-sources: ${error.message}`);
     res.write(`data: Error: ${error.message}\n\n`);
     res.write(`data: [END]\n\n`);
     res.end();
