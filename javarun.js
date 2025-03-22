@@ -77,6 +77,43 @@ app.post('/chat', upload, async (req, res) => {
 
     let assistantResponse = '';
 
+    // Handle source extraction command
+    const sourceExtractionPattern = /^Extract sources from this response:\s*"(.*)"\s*$/;
+    const match = userMessage.match(sourceExtractionPattern);
+    if (match) {
+      const mainMessage = match[1].trim();
+
+      // Extract sources using GPT-4o Mini
+      const sourcesResponse = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Extract Quran verses and Hadith sources from the following text in the format: Quran 1:2, Hadith Bukhari 2:100, etc. Output only the sources, one per line. If no sources are found, return an empty response with no text.'
+          },
+          {
+            role: 'user',
+            content: mainMessage
+          }
+        ],
+        max_tokens: 100,
+      });
+
+      // Parse and filter sources
+      const sourcesContent = sourcesResponse.choices[0].message.content.trim();
+      const sources = sourcesContent ? sourcesContent.split('\n').filter(line =>
+        line.match(/^Quran \d+:\d+$/) || line.match(/^Hadith [A-Za-z]+ \d+:\d+$/)
+      ) : [];
+
+      // Stream the sources
+      for (let source of sources) {
+        res.write(`data: ${source.trim()}\n\n`);
+      }
+      res.write(`data: [END]\n\n`);
+      res.end();
+      return;
+    }
+
     // Handle file uploads or text input
     if (files && files.length > 0) {
       const hasImage = files.some(file => file.mimetype.startsWith('image/'));
@@ -113,7 +150,7 @@ app.post('/chat', upload, async (req, res) => {
           content: assistantResponse,
         });
       } else {
-        // Handle other file types
+        // Handle other file types with main assistant
         let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
         const uploadedFile = await openai.files.create({
           file: files[0].buffer,
@@ -146,42 +183,7 @@ app.post('/chat', upload, async (req, res) => {
         }
       }
     } else {
-      // Handle text-only input or source extraction
-      if (userMessage.startsWith('Extract sources from this response')) {
-        const mainMessage = userMessage.split(':"')[1].slice(0, -1);
-
-        // Extract sources using GPT-4o Mini
-        const sourcesResponse = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'Extract Quran verses and Hadith sources from the following text in the format: Quran 1:2, Hadith Bukhari 2:100, etc. Output only the sources, one per line. If no sources are found, return an empty response with no text.'
-            },
-            {
-              role: 'user',
-              content: mainMessage
-            }
-          ],
-          max_tokens: 100,
-        });
-
-        // Parse and filter sources
-        const sourcesContent = sourcesResponse.choices[0].message.content.trim();
-        const sources = sourcesContent ? sourcesContent.split('\n').filter(line =>
-          line.match(/^Quran \d+:\d+$/) || line.match(/^Hadith [A-Za-z]+ \d+:\d+$/)
-        ) : [];
-
-        // Stream the sources
-        for (let source of sources) {
-          res.write(`data: ${source.trim()}\n\n`);
-        }
-        res.write(`data: [END]\n\n`);
-        res.end();
-        return;
-      }
-
-      // Handle regular text input
+      // Handle regular text input with main assistant
       await openai.beta.threads.messages.create(thread.id, {
         role: 'user',
         content: userMessage,
@@ -217,36 +219,6 @@ app.post('/chat', upload, async (req, res) => {
       await new Promise(resolve => setTimeout(resolve, 100)); // Simulate streaming delay
     }
     res.write(`data: [END]\n\n`);
-
-    // Extract sources using GPT-4o Mini
-    const sourcesResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'Extract Quran verses and Hadith sources from the following text in the format: Quran 1:2, Hadith Bukhari 2:100, etc. Output only the sources, one per line. If no sources are found, return an empty response with no text.'
-        },
-        {
-          role: 'user',
-          content: assistantResponse
-        }
-      ],
-      max_tokens: 100,
-    });
-
-    // Parse and filter sources
-    const sourcesContent = sourcesResponse.choices[0].message.content.trim();
-    const sources = sourcesContent ? sourcesContent.split('\n').filter(line =>
-      line.match(/^Quran \d+:\d+$/) || line.match(/^Hadith [A-Za-z]+ \d+:\d+$/)
-    ) : [];
-
-    // Stream the sources
-    res.write(`data: [SOURCES]\n\n`);
-    for (let source of sources) {
-      res.write(`data: ${source.trim()}\n\n`);
-    }
-    res.write(`data: [END_SOURCES]\n\n`);
-
     res.end();
   } catch (error) {
     console.error(`Error in /chat: ${error.message}`);
