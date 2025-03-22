@@ -31,7 +31,7 @@ if (!apiKey) {
 }
 
 const openai = new OpenAI({ apiKey });
-const ASSISTANT_ID = "your-assistant-id"; // Replace with your actual assistant ID
+const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT"; // Replace with your actual assistant ID
 let thread;
 
 // Verify assistant exists
