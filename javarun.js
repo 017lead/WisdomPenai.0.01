@@ -214,14 +214,14 @@ app.post('/extract-sources', async (req, res) => {
       messages: [
         {
           role: 'system',
-          content: 'Extract Quran verses and Hadith sources from the following text in the format: Quran 1:2, Hadith Bukhari 2:100, etc. Output only the sources, one per line. If no sources are found, return an empty response with no text.'
+          content: 'Extract all Quran verses and Hadith references from the following text. Return ONLY the complete references in the format: "Quran X:Y" for Quran references (where X is the Surah number and Y is the verse number or range, e.g., "Quran 1:1" or "Quran 2:255-256"), and "Hadith [Collection] X:Y" for Hadith references (e.g., "Hadith Bukhari 1:100"). For named Surahs (e.g., "Surah Al-Fatihah"), convert them to their numerical form (e.g., "Quran 1"). Output each reference on a new line. If no references are found, return an empty response with no text. Examples of references to extract: "Surah Al-Fatihah (The Opening)", "Surah 2", "Quran 67:1", "Hadith Bukhari 1:100'
         },
         {
           role: 'user',
           content: message
         }
       ],
-      max_tokens: 100,
+      max_tokens: 150,
     });
 
     // Parse and filter sources
