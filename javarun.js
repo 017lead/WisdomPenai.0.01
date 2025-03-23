@@ -48,7 +48,7 @@ async function verifyAssistant() {
 
 verifyAssistant().then(() => console.log('Assistant verification completed'));
 
-// Chat endpoint
+// Chat endpoint with streaming
 app.post('/chat', upload, async (req, res) => {
   // Set up SSE headers
   res.writeHead(200, {
@@ -75,13 +75,11 @@ app.post('/chat', upload, async (req, res) => {
       return;
     }
 
-    let assistantResponse = '';
-
     // Handle file uploads or text input
     if (files && files.length > 0) {
       const hasImage = files.some(file => file.mimetype.startsWith('image/'));
       if (hasImage) {
-        // Handle image input with GPT-4o Mini for vision
+        // Handle image input with Chat Completions API (streaming)
         const imageFile = files.find(file => file.mimetype.startsWith('image/'));
         const base64Image = imageFile.buffer.toString('base64');
         const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
@@ -96,12 +94,23 @@ app.post('/chat', upload, async (req, res) => {
           },
         ];
 
-        const visionResponse = await openai.chat.completions.create({
+        const stream = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages,
           max_tokens: 300,
+          stream: true,
         });
-        assistantResponse = visionResponse.choices[0].message.content;
+
+        let fullResponse = '';
+        for await (const chunk of stream) {
+          const delta = chunk.choices[0].delta.content;
+          if (delta) {
+            res.write(`data: ${delta}\n\n`);
+            fullResponse += delta;
+          }
+        }
+        res.write(`data: [END]\n\n`);
+        res.end();
 
         // Add to thread for context
         await openai.beta.threads.messages.create(thread.id, {
@@ -110,79 +119,53 @@ app.post('/chat', upload, async (req, res) => {
         });
         await openai.beta.threads.messages.create(thread.id, {
           role: 'assistant',
-          content: assistantResponse,
+          content: fullResponse,
         });
       } else {
-        // Handle other file types with main assistant (ASSISTANT_ID)
+        // Handle non-image files with Assistant API (streaming)
         let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
         const uploadedFile = await openai.files.create({
           file: files[0].buffer,
           purpose: 'assistants',
         });
         messageOptions.file_ids = [uploadedFile.id];
-
         await openai.beta.threads.messages.create(thread.id, messageOptions);
-        const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
 
-        let timeout = 30;
-        const startTime = Date.now();
-        while (true) {
-          const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-          if (runStatus.status === 'completed') {
-            const messages = await openai.beta.threads.messages.list(thread.id);
-            assistantResponse = messages.data
-              .filter(msg => msg.role === 'assistant' && msg.run_id === run.id)
-              .sort((a, b) => b.created_at - a.created_at)[0]
-              .content[0].text.value;
-            break;
+        const stream = await openai.beta.threads.runs.create(thread.id, {
+          assistant_id: ASSISTANT_ID,
+          stream: true,
+        });
+
+        for await (const event of stream) {
+          if (event.event === 'thread.message.delta') {
+            const delta = event.data.delta.content[0].text.value;
+            res.write(`data: ${delta}\n\n`);
           }
-          if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
-            throw new Error(`Run ${runStatus.status}`);
-          }
-          if ((Date.now() - startTime) / 1000 > timeout) {
-            throw new Error('Request timed out');
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000));
         }
+        res.write(`data: [END]\n\n`);
+        res.end();
       }
     } else {
-      // Handle regular text input with main assistant (ASSISTANT_ID)
+      // Handle text-only input with Assistant API (streaming)
       await openai.beta.threads.messages.create(thread.id, {
         role: 'user',
         content: userMessage,
       });
-      const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
 
-      let timeout = 30;
-      const startTime = Date.now();
-      while (true) {
-        const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-        if (runStatus.status === 'completed') {
-          const messages = await openai.beta.threads.messages.list(thread.id);
-          assistantResponse = messages.data
-            .filter(msg => msg.role === 'assistant' && msg.run_id === run.id)
-            .sort((a, b) => b.created_at - a.created_at)[0]
-            .content[0].text.value;
-          break;
+      const stream = await openai.beta.threads.runs.create(thread.id, {
+        assistant_id: ASSISTANT_ID,
+        stream: true,
+      });
+
+      for await (const event of stream) {
+        if (event.event === 'thread.message.delta') {
+          const delta = event.data.delta.content[0].text.value;
+          res.write(`data: ${delta}\n\n`);
         }
-        if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
-          throw new Error(`Run ${runStatus.status}`);
-        }
-        if ((Date.now() - startTime) / 1000 > timeout) {
-          throw new Error('Request timed out');
-        }
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
+      res.write(`data: [END]\n\n`);
+      res.end();
     }
-
-    // Stream the main response word by word
-    const words = assistantResponse.split(' ');
-    for (let word of words) {
-      res.write(`data: ${word}\n\n`);
-      await new Promise(resolve => setTimeout(resolve, 100)); // Simulate streaming delay
-    }
-    res.write(`data: [END]\n\n`);
-    res.end();
   } catch (error) {
     console.error(`Error in /chat: ${error.message}`);
     res.write(`data: Error: ${error.message}\n\n`);
@@ -191,7 +174,7 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
-// Source extraction endpoint (using assistant instead of GPT-4o-mini)
+// Source extraction endpoint (unchanged)
 app.post('/extract-sources', async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -263,7 +246,7 @@ app.post('/extract-sources', async (req, res) => {
   }
 });
 
-// Health check endpoint
+// Health check endpoint (unchanged)
 app.get('/health', async (req, res) => {
   try {
     const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
