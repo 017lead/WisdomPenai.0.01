@@ -191,7 +191,7 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
-// Source extraction endpoint using GPT-4o-mini
+// Source extraction endpoint (using assistant instead of GPT-4o-mini)
 app.post('/extract-sources', async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -208,28 +208,46 @@ app.post('/extract-sources', async (req, res) => {
       return;
     }
 
-    // Extract sources using GPT-4o Mini
-    const sourcesResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'Extract all Quran verses and Hadith references from the following text. Return ONLY the complete references in the format: "Quran X:Y" for Quran references (where X is the Surah number and Y is the verse number or range, e.g., "Quran 1:1" or "Quran 2:255-256"), and "Hadith [Collection] X:Y" for Hadith references (e.g., "Hadith Bukhari 1:100"). For named Surahs (e.g., "Surah Al-Fatihah"), convert them to their numerical form (e.g., "Quran 1"). Output each reference on a new line. If no references are found, return an empty response with no text. Examples of references to extract: "Surah Al-Fatihah (The Opening)", "Surah 2", "Quran 67:1", "Hadith Bukhari 1:100'
-        },
-        {
-          role: 'user',
-          content: message
-        }
-      ],
-      max_tokens: 150,
+    // Use the assistant for source extraction
+    if (!thread) {
+      thread = await openai.beta.threads.create();
+    }
+
+    await openai.beta.threads.messages.create(thread.id, {
+      role: 'user',
+      content: `Extract all Quran verses and Hadith references from the following text. Return ONLY the complete references in the format: "Quran X:Y" for Quran references (where X is the Surah number and Y is the verse number or range, e.g., "Quran 1:1" or "Quran 2:255-256"), and "Hadith [Collection] X:Y" for Hadith references (e.g., "Hadith Bukhari 1:100"). For named Surahs (e.g., "Surah Al-Fatihah"), convert them to their numerical form (e.g., "Quran 1"). Output each reference on a new line. If no references are found, return an empty response with no text. Examples of references to extract: "Surah Al-Fatihah (The Opening)", "Surah 2", "Quran 67:1", "Hadith Bukhari 1:100". Text: ${message}`,
     });
 
+    const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
+
+    let timeout = 30;
+    const startTime = Date.now();
+    let assistantResponse = '';
+
+    while (true) {
+      const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      if (runStatus.status === 'completed') {
+        const messages = await openai.beta.threads.messages.list(thread.id);
+        assistantResponse = messages.data
+          .filter(msg => msg.role === 'assistant' && msg.run_id === run.id)
+          .sort((a, b) => b.created_at - a.created_at)[0]
+          .content[0].text.value;
+        break;
+      }
+      if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
+        throw new Error(`Run ${runStatus.status}`);
+      }
+      if ((Date.now() - startTime) / 1000 > timeout) {
+        throw new Error('Request timed out');
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+
     // Parse and filter sources
-    const sourcesContent = sourcesResponse.choices[0].message.content.trim();
-    const sources = sourcesContent ? sourcesContent.split('\n').filter(line =>
+    const sources = assistantResponse.trim().split('\n').filter(line =>
       line.match(/^Quran \d+:\d+(?:-\d+)?$/) || 
       line.match(/^Hadith [A-Za-z]+ \d+:\d+$/)
-    ) : [];
+    );
 
     // Stream the sources
     for (let source of sources) {
