@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
 import multer from 'multer';
+import NodeCache from 'node-cache'; // Import node-cache
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,6 +17,12 @@ const port = process.env.PORT || 10000;
 
 app.use(express.json());
 app.use(cors());
+
+// Initialize cache with a TTL of 1 hour (3600 seconds)
+const cache = new NodeCache({
+  stdTTL: 3600, // Cache TTL in seconds
+  checkperiod: 120, // Check for expired items every 2 minutes
+});
 
 // Configure multer for file uploads (max 5MB, up to 5 files)
 const upload = multer({
@@ -48,9 +55,8 @@ async function verifyAssistant() {
 
 verifyAssistant().then(() => console.log('Assistant verification completed'));
 
-// Chat endpoint with streaming
+// Chat endpoint with streaming and caching
 app.post('/chat', upload, async (req, res) => {
-  // Set up SSE headers
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -58,28 +64,40 @@ app.post('/chat', upload, async (req, res) => {
   });
 
   try {
+    const userMessage = req.body.message || '';
+    const files = req.files || [];
+    const cacheKey = `chat_${userMessage}_${files.map(f => f.originalname).join('_')}`;
+
+    // Check cache first
+    const cachedResponse = cache.get(cacheKey);
+    if (cachedResponse) {
+      console.log(`Cache hit for key: ${cacheKey}`);
+      for (const chunk of cachedResponse) {
+        res.write(`data: ${chunk}\n\n`);
+      }
+      res.write(`data: [END]\n\n`);
+      res.end();
+      return;
+    }
+
     // Create a thread if it doesn’t exist
     if (!thread) {
       thread = await openai.beta.threads.create();
       console.log(`New thread created with ID: ${thread.id}`);
     }
 
-    const userMessage = req.body.message || '';
-    const files = req.files;
-
-    // Check for valid input
-    if (!userMessage && (!files || files.length === 0)) {
+    if (!userMessage && files.length === 0) {
       res.write(`data: Please provide a message or files\n\n`);
       res.write(`data: [END]\n\n`);
       res.end();
       return;
     }
 
-    // Handle file uploads or text input
-    if (files && files.length > 0) {
+    let responseChunks = [];
+
+    if (files.length > 0) {
       const hasImage = files.some(file => file.mimetype.startsWith('image/'));
       if (hasImage) {
-        // Handle image input with Chat Completions API (streaming)
         const imageFile = files.find(file => file.mimetype.startsWith('image/'));
         const base64Image = imageFile.buffer.toString('base64');
         const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
@@ -107,12 +125,12 @@ app.post('/chat', upload, async (req, res) => {
           if (delta) {
             res.write(`data: ${delta}\n\n`);
             fullResponse += delta;
+            responseChunks.push(delta);
           }
         }
         res.write(`data: [END]\n\n`);
         res.end();
 
-        // Add to thread for context
         await openai.beta.threads.messages.create(thread.id, {
           role: 'user',
           content: userMessage || 'Image uploaded',
@@ -121,8 +139,9 @@ app.post('/chat', upload, async (req, res) => {
           role: 'assistant',
           content: fullResponse,
         });
+
+        cache.set(cacheKey, responseChunks);
       } else {
-        // Handle non-image files with Assistant API (streaming)
         let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
         const uploadedFile = await openai.files.create({
           file: files[0].buffer,
@@ -140,13 +159,15 @@ app.post('/chat', upload, async (req, res) => {
           if (event.event === 'thread.message.delta') {
             const delta = event.data.delta.content[0].text.value;
             res.write(`data: ${delta}\n\n`);
+            responseChunks.push(delta);
           }
         }
         res.write(`data: [END]\n\n`);
         res.end();
+
+        cache.set(cacheKey, responseChunks);
       }
     } else {
-      // Handle text-only input with Assistant API (streaming)
       await openai.beta.threads.messages.create(thread.id, {
         role: 'user',
         content: userMessage,
@@ -161,10 +182,13 @@ app.post('/chat', upload, async (req, res) => {
         if (event.event === 'thread.message.delta') {
           const delta = event.data.delta.content[0].text.value;
           res.write(`data: ${delta}\n\n`);
+          responseChunks.push(delta);
         }
       }
       res.write(`data: [END]\n\n`);
       res.end();
+
+      cache.set(cacheKey, responseChunks);
     }
   } catch (error) {
     console.error(`Error in /chat: ${error.message}`);
@@ -174,7 +198,7 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
-// Source extraction endpoint (unchanged)
+// Source extraction endpoint with caching
 app.post('/extract-sources', async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -184,6 +208,20 @@ app.post('/extract-sources', async (req, res) => {
 
   try {
     const message = req.body.message || '';
+    const cacheKey = `extract-sources_${message}`;
+
+    // Check cache first
+    const cachedResponse = cache.get(cacheKey);
+    if (cachedResponse) {
+      console.log(`Cache hit for key: ${cacheKey}`);
+      for (const source of cachedResponse) {
+        res.write(`data: ${source}\n\n`);
+      }
+      res.write(`data: [END]\n\n`);
+      res.end();
+      return;
+    }
+
     if (!message) {
       res.write(`data: Error: No message provided for source extraction\n\n`);
       res.write(`data: [END]\n\n`);
@@ -191,7 +229,6 @@ app.post('/extract-sources', async (req, res) => {
       return;
     }
 
-    // Use the assistant for source extraction
     if (!thread) {
       thread = await openai.beta.threads.create();
     }
@@ -226,18 +263,18 @@ app.post('/extract-sources', async (req, res) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    // Parse and filter sources
     const sources = assistantResponse.trim().split('\n').filter(line =>
       line.match(/^Quran \d+:\d+(?:-\d+)?$/) || 
       line.match(/^Hadith [A-Za-z]+ \d+:\d+$/)
     );
 
-    // Stream the sources
     for (let source of sources) {
       res.write(`data: ${source.trim()}\n\n`);
     }
     res.write(`data: [END]\n\n`);
     res.end();
+
+    cache.set(cacheKey, sources);
   } catch (error) {
     console.error(`Error in /extract-sources: ${error.message}`);
     res.write(`data: Error: ${error.message}\n\n`);
@@ -258,7 +295,8 @@ app.get('/health', async (req, res) => {
       tools_enabled: assistant.tools.map(tool => tool.type),
       features: {
         image_analysis: true,
-        file_upload: true
+        file_upload: true,
+        cache_enabled: true, // Indicate caching is enabled
       }
     });
   } catch (error) {
