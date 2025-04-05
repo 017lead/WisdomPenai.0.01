@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import cors from 'cors';
 import multer from 'multer';
-import NodeCache from 'node-cache'; // Import node-cache
+import NodeCache from 'node-cache';
+import { randomUUID } from 'crypto'; // Import for generating unique session IDs
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -39,7 +40,9 @@ if (!apiKey) {
 
 const openai = new OpenAI({ apiKey });
 const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT"; // Replace with your actual assistant ID
-let thread;
+
+// Map to store sessionId to threadId mappings
+const sessionThreads = new Map();
 
 // Verify assistant exists
 async function verifyAssistant() {
@@ -55,7 +58,20 @@ async function verifyAssistant() {
 
 verifyAssistant().then(() => console.log('Assistant verification completed'));
 
-// Chat endpoint with streaming and caching
+// Endpoint to start a new conversation
+app.post('/start-conversation', async (req, res) => {
+  try {
+    const sessionId = randomUUID(); // Generate a unique session ID
+    const thread = await openai.beta.threads.create(); // Create a new thread
+    sessionThreads.set(sessionId, thread.id); // Map session ID to thread ID
+    res.json({ sessionId }); // Return the session ID to the client
+  } catch (error) {
+    console.error(`Error in /start-conversation: ${error.message}`);
+    res.status(500).json({ error: 'Failed to start conversation' });
+  }
+});
+
+// Chat endpoint with streaming and per-session caching
 app.post('/chat', upload, async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -64,9 +80,21 @@ app.post('/chat', upload, async (req, res) => {
   });
 
   try {
+    // Get session ID from request body
+    const sessionId = req.body.sessionId;
+    if (!sessionId || !sessionThreads.has(sessionId)) {
+      res.write(`data: Error: Invalid or missing sessionId\n\n`);
+      res.write(`data: [END]\n\n`);
+      res.end();
+      return;
+    }
+
+    const threadId = sessionThreads.get(sessionId); // Retrieve thread ID for this session
     const userMessage = req.body.message || '';
     const files = req.files || [];
-    const cacheKey = `chat_${userMessage}_${files.map(f => f.originalname).join('_')}`;
+
+    // Include sessionId in cache key to make caching per-session
+    const cacheKey = `chat_${sessionId}_${userMessage}_${files.map(f => f.originalname).join('_')}`;
 
     // Check cache first
     const cachedResponse = cache.get(cacheKey);
@@ -78,12 +106,6 @@ app.post('/chat', upload, async (req, res) => {
       res.write(`data: [END]\n\n`);
       res.end();
       return;
-    }
-
-    // Create a thread if it doesn’t exist
-    if (!thread) {
-      thread = await openai.beta.threads.create();
-      console.log(`New thread created with ID: ${thread.id}`);
     }
 
     if (!userMessage && files.length === 0) {
@@ -131,11 +153,12 @@ app.post('/chat', upload, async (req, res) => {
         res.write(`data: [END]\n\n`);
         res.end();
 
-        await openai.beta.threads.messages.create(thread.id, {
+        // Add messages to the session’s thread for conversation history
+        await openai.beta.threads.messages.create(threadId, {
           role: 'user',
           content: userMessage || 'Image uploaded',
         });
-        await openai.beta.threads.messages.create(thread.id, {
+        await openai.beta.threads.messages.create(threadId, {
           role: 'assistant',
           content: fullResponse,
         });
@@ -148,9 +171,9 @@ app.post('/chat', upload, async (req, res) => {
           purpose: 'assistants',
         });
         messageOptions.file_ids = [uploadedFile.id];
-        await openai.beta.threads.messages.create(thread.id, messageOptions);
+        await openai.beta.threads.messages.create(threadId, messageOptions);
 
-        const stream = await openai.beta.threads.runs.create(thread.id, {
+        const stream = await openai.beta.threads.runs.create(threadId, {
           assistant_id: ASSISTANT_ID,
           stream: true,
         });
@@ -168,12 +191,12 @@ app.post('/chat', upload, async (req, res) => {
         cache.set(cacheKey, responseChunks);
       }
     } else {
-      await openai.beta.threads.messages.create(thread.id, {
+      await openai.beta.threads.messages.create(threadId, {
         role: 'user',
         content: userMessage,
       });
 
-      const stream = await openai.beta.threads.runs.create(thread.id, {
+      const stream = await openai.beta.threads.runs.create(threadId, {
         assistant_id: ASSISTANT_ID,
         stream: true,
       });
@@ -198,7 +221,7 @@ app.post('/chat', upload, async (req, res) => {
   }
 });
 
-// Source extraction endpoint with caching
+// Source extraction endpoint with temporary threads and caching
 app.post('/extract-sources', async (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -229,25 +252,23 @@ app.post('/extract-sources', async (req, res) => {
       return;
     }
 
-    if (!thread) {
-      thread = await openai.beta.threads.create();
-    }
-
-    await openai.beta.threads.messages.create(thread.id, {
+    // Create a temporary thread for this request
+    const tempThread = await openai.beta.threads.create();
+    await openai.beta.threads.messages.create(tempThread.id, {
       role: 'user',
       content: `Extract all Quran verses and Hadith references from the following text. Return ONLY the complete references in the format: "Quran X:Y" for Quran references (where X is the Surah number and Y is the verse number or range, e.g., "Quran 1:1" or "Quran 2:255-256"), and "Hadith [Collection] X:Y" for Hadith references (e.g., "Hadith Bukhari 1:100"). For named Surahs (e.g., "Surah Al-Fatihah"), convert them to their numerical form (e.g., "Quran 1"). Output each reference on a new line. If no references are found, return an empty response with no text. Examples of references to extract: "Surah Al-Fatihah (The Opening)", "Surah 2", "Quran 67:1", "Hadith Bukhari 1:100". Text: ${message}`,
     });
 
-    const run = await openai.beta.threads.runs.create(thread.id, { assistant_id: ASSISTANT_ID });
+    const run = await openai.beta.threads.runs.create(tempThread.id, { assistant_id: ASSISTANT_ID });
 
     let timeout = 30;
     const startTime = Date.now();
     let assistantResponse = '';
 
     while (true) {
-      const runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      const runStatus = await openai.beta.threads.runs.retrieve(tempThread.id, run.id);
       if (runStatus.status === 'completed') {
-        const messages = await openai.beta.threads.messages.list(thread.id);
+        const messages = await openai.beta.threads.messages.list(tempThread.id);
         assistantResponse = messages.data
           .filter(msg => msg.role === 'assistant' && msg.run_id === run.id)
           .sort((a, b) => b.created_at - a.created_at)[0]
@@ -296,7 +317,7 @@ app.get('/health', async (req, res) => {
       features: {
         image_analysis: true,
         file_upload: true,
-        cache_enabled: true, // Indicate caching is enabled
+        cache_enabled: true,
       }
     });
   } catch (error) {
