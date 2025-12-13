@@ -57,17 +57,18 @@ async function createConversation() {
 // Endpoint to start a new conversation
 app.post('/start-conversation', async (req, res) => {
   try {
-    const sessionId = randomUUID(); // Generate a unique session ID
-    const conv = await openai.conversations.create({
-      metadata: { sessionId, created_at: Date.now().toString() }
-    });
-    sessionConversations.set(sessionId, conv.id);
+    const sessionId = randomUUID();
+    const conversationId = randomUUID(); // client-side conversation id
+
+    sessionConversations.set(sessionId, conversationId);
+
     res.json({ sessionId });
   } catch (error) {
     console.error(`Error in /start-conversation: ${error.message}`);
     res.status(500).json({ error: 'Failed to start conversation' });
   }
 });
+
 
 // Helper to stream a Responses API call to the SSE connection
 async function streamResponseToSSE({ openaiClient, resSSE, requestPayload, cacheKey }) {
