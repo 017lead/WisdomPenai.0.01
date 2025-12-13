@@ -61,18 +61,16 @@ if (!openai.responses || typeof openai.responses.create !== "function") {
 console.log("OpenAI Responses API READY");
 
 /* ===========================
-   Sessions
+   Sessions (local only)
 =========================== */
-const sessionConversations = new Map();
+const sessions = new Set();
 
 /* ===========================
-   Start Conversation
+   Start Session
 =========================== */
 app.post("/start-conversation", (req, res) => {
   const sessionId = randomUUID();
-  const conversationId = randomUUID();
-
-  sessionConversations.set(sessionId, conversationId);
+  sessions.add(sessionId);
   res.json({ sessionId });
 });
 
@@ -122,13 +120,12 @@ app.post("/chat", upload, async (req, res) => {
     const { sessionId, message = "" } = req.body;
     const files = req.files || [];
 
-    if (!sessionConversations.has(sessionId)) {
+    if (!sessions.has(sessionId)) {
       res.write(`data: Error: Invalid session\n\n`);
       res.write(`data: [END]\n\n`);
       return res.end();
     }
 
-    const conversation = sessionConversations.get(sessionId);
     const cacheKey = `chat_${sessionId}_${message}_${files.length}`;
 
     if (cache.has(cacheKey)) {
@@ -200,7 +197,6 @@ app.post("/chat", upload, async (req, res) => {
       payload: {
         model: "gpt-5.2",
         input,
-        conversation,
       },
     });
 
@@ -244,5 +240,6 @@ app.get("/health", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
 
