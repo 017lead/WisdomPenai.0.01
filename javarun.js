@@ -8,11 +8,17 @@ import { randomUUID } from "crypto";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
+/* ===========================
+   Path / Env
+=========================== */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 dotenv.config({ path: join(__dirname, ".env") });
 
+/* ===========================
+   App
+=========================== */
 const app = express();
 const PORT = process.env.PORT || 10000;
 
@@ -47,7 +53,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-/* HARD FAIL if Responses API is not present */
 if (!openai.responses || typeof openai.responses.create !== "function") {
   console.error("FATAL: OpenAI SDK does NOT support Responses API");
   process.exit(1);
@@ -56,7 +61,7 @@ if (!openai.responses || typeof openai.responses.create !== "function") {
 console.log("OpenAI Responses API READY");
 
 /* ===========================
-   Session → Conversation
+   Sessions
 =========================== */
 const sessionConversations = new Map();
 
@@ -80,22 +85,27 @@ async function streamResponse({ res, payload, cacheKey }) {
     stream: true,
   });
 
-  let full = [];
-  for await (const event of stream) {
-    if (event.type === "response.output_text.delta") {
-      res.write(`data: ${event.delta}\n\n`);
-      full.push(event.delta);
-    }
+  const chunks = [];
 
-    if (event.type === "response.error") {
-      res.write(`data: Error: ${event.error?.message}\n\n`);
+  try {
+    for await (const event of stream) {
+      if (
+        event.type === "response.output_text.delta" &&
+        typeof event.delta === "string"
+      ) {
+        res.write(`data: ${event.delta}\n\n`);
+        chunks.push(event.delta);
+      }
+
+      if (event.type === "response.error") {
+        res.write(`data: Error: ${event.error?.message}\n\n`);
+      }
     }
+  } finally {
+    res.write(`data: [END]\n\n`);
+    res.end();
+    if (cacheKey) cache.set(cacheKey, chunks);
   }
-
-  res.write(`data: [END]\n\n`);
-  res.end();
-
-  if (cacheKey) cache.set(cacheKey, full);
 }
 
 /* ===========================
@@ -139,10 +149,13 @@ app.post("/chat", upload, async (req, res) => {
       input = [{
         role: "user",
         content: [
-          { type: "text", text: message || "Describe this image" },
           {
-            type: "image_url",
-            image_url: { url: `data:${img.mimetype};base64,${base64}` },
+            type: "input_text",
+            text: message || "Describe this image",
+          },
+          {
+            type: "input_image",
+            image_url: `data:${img.mimetype};base64,${base64}`,
           },
         ],
       }];
@@ -158,10 +171,13 @@ app.post("/chat", upload, async (req, res) => {
       input = [{
         role: "user",
         content: [
-          { type: "text", text: message || "Analyze this file" },
+          {
+            type: "input_text",
+            text: message || "Analyze this file",
+          },
           {
             type: "input_file",
-            file: { id: uploaded.id, filename: files[0].originalname },
+            file_id: uploaded.id,
           },
         ],
       }];
@@ -171,7 +187,10 @@ app.post("/chat", upload, async (req, res) => {
     else {
       input = [{
         role: "user",
-        content: [{ type: "text", text: message }],
+        content: [{
+          type: "input_text",
+          text: message,
+        }],
       }];
     }
 
@@ -202,7 +221,10 @@ app.get("/health", async (req, res) => {
       model: "gpt-5.2",
       input: [{
         role: "user",
-        content: [{ type: "text", text: "Say ok" }],
+        content: [{
+          type: "input_text",
+          text: "Say ok",
+        }],
       }],
     });
 
@@ -222,4 +244,5 @@ app.get("/health", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
