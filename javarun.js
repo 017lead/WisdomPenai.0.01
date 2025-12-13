@@ -1,339 +1,225 @@
-
-
-
-
-import express from 'express';
+import express from "express";
 import OpenAI from "openai";
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import cors from 'cors';
-import multer from 'multer';
-import NodeCache from 'node-cache';
-import { randomUUID } from 'crypto'; // Import for generating unique session IDs
+import dotenv from "dotenv";
+import cors from "cors";
+import multer from "multer";
+import NodeCache from "node-cache";
+import { randomUUID } from "crypto";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-dotenv.config({ path: join(__dirname, '.env') });
+dotenv.config({ path: join(__dirname, ".env") });
 
 const app = express();
-const port = process.env.PORT || 10000;
+const PORT = process.env.PORT || 10000;
 
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
-// Initialize cache with a TTL of 1 hour (3600 seconds)
+/* ===========================
+   Cache
+=========================== */
 const cache = new NodeCache({
-  stdTTL: 3600, // Cache TTL in seconds
-  checkperiod: 120, // Check for expired items every 2 minutes
+  stdTTL: 3600,
+  checkperiod: 120,
 });
 
-// Configure multer for file uploads (max 5MB, up to 5 files)
+/* ===========================
+   Multer
+=========================== */
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
-}).array('files', 5);
+}).array("files", 5);
 
-// Initialize OpenAI client
-const apiKey = process.env.OPENAI_API_KEY;
-if (!apiKey) {
-  console.error('Missing API key in environment (OPENAI_API_KEY)');
+/* ===========================
+   OpenAI
+=========================== */
+if (!process.env.OPENAI_API_KEY) {
+  console.error("FATAL: OPENAI_API_KEY missing");
   process.exit(1);
 }
 
-const openai = new OpenAI({ apiKey });
-const ASSISTANT_ID = "asst_GZR3yTrT76O0DVIhrIT7wIzT"; // Replace with your actual assistant ID
-
-// Map to store sessionId to threadId mappings
-const sessionThreads = new Map();
-
-// Verify assistant exists
-async function verifyAssistant() {
-  try {
-    const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
-    console.log(`Assistant Verified: ID: ${assistant.id}, Name: ${assistant.name}`);
-    return true;
-  } catch (error) {
-    console.error(`Failed to verify assistant ${ASSISTANT_ID}: ${error.message}`);
-    process.exit(1);
-  }
-}
-
-verifyAssistant().then(() => console.log('Assistant verification completed'));
-
-// Endpoint to start a new conversation
-app.post('/start-conversation', async (req, res) => {
-  try {
-    const sessionId = randomUUID(); // Generate a unique session ID
-    const thread = await openai.beta.threads.create(); // Create a new thread
-    sessionThreads.set(sessionId, thread.id); // Map session ID to thread ID
-    res.json({ sessionId }); // Return the session ID to the client
-  } catch (error) {
-    console.error(`Error in /start-conversation: ${error.message}`);
-    res.status(500).json({ error: 'Failed to start conversation' });
-  }
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Chat endpoint with streaming and per-session caching
-app.post('/chat', upload, async (req, res) => {
+/* HARD FAIL if Responses API is not present */
+if (!openai.responses || typeof openai.responses.create !== "function") {
+  console.error("FATAL: OpenAI SDK does NOT support Responses API");
+  process.exit(1);
+}
+
+console.log("OpenAI Responses API READY");
+
+/* ===========================
+   Session → Conversation
+=========================== */
+const sessionConversations = new Map();
+
+/* ===========================
+   Start Conversation
+=========================== */
+app.post("/start-conversation", (req, res) => {
+  const sessionId = randomUUID();
+  const conversationId = randomUUID();
+
+  sessionConversations.set(sessionId, conversationId);
+  res.json({ sessionId });
+});
+
+/* ===========================
+   Streaming Helper
+=========================== */
+async function streamResponse({ res, payload, cacheKey }) {
+  const stream = await openai.responses.create({
+    ...payload,
+    stream: true,
+  });
+
+  let full = [];
+  for await (const event of stream) {
+    if (event.type === "response.output_text.delta") {
+      res.write(`data: ${event.delta}\n\n`);
+      full.push(event.delta);
+    }
+
+    if (event.type === "response.error") {
+      res.write(`data: Error: ${event.error?.message}\n\n`);
+    }
+  }
+
+  res.write(`data: [END]\n\n`);
+  res.end();
+
+  if (cacheKey) cache.set(cacheKey, full);
+}
+
+/* ===========================
+   Chat Endpoint
+=========================== */
+app.post("/chat", upload, async (req, res) => {
   res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
   });
 
   try {
-    // Get session ID from request body
-    const sessionId = req.body.sessionId;
-    if (!sessionId || !sessionThreads.has(sessionId)) {
-      res.write(`data: Error: Invalid or missing sessionId\n\n`);
-      res.write(`data: [END]\n\n`);
-      res.end();
-      return;
-    }
-
-    const threadId = sessionThreads.get(sessionId); // Retrieve thread ID for this session
-    const userMessage = req.body.message || '';
+    const { sessionId, message = "" } = req.body;
     const files = req.files || [];
 
-    // Include sessionId in cache key to make caching per-session
-    const cacheKey = `chat_${sessionId}_${userMessage}_${files.map(f => f.originalname).join('_')}`;
+    if (!sessionConversations.has(sessionId)) {
+      res.write(`data: Error: Invalid session\n\n`);
+      res.write(`data: [END]\n\n`);
+      return res.end();
+    }
 
-    // Check cache first
-    const cachedResponse = cache.get(cacheKey);
-    if (cachedResponse) {
-      console.log(`Cache hit for key: ${cacheKey}`);
-      for (const chunk of cachedResponse) {
+    const conversation = sessionConversations.get(sessionId);
+    const cacheKey = `chat_${sessionId}_${message}_${files.length}`;
+
+    if (cache.has(cacheKey)) {
+      for (const chunk of cache.get(cacheKey)) {
         res.write(`data: ${chunk}\n\n`);
       }
       res.write(`data: [END]\n\n`);
-      res.end();
-      return;
+      return res.end();
     }
 
-    if (!userMessage && files.length === 0) {
-      res.write(`data: Please provide a message or files\n\n`);
-      res.write(`data: [END]\n\n`);
-      res.end();
-      return;
-    }
+    let input;
 
-    let responseChunks = [];
+    /* ===== Image ===== */
+    if (files.some(f => f.mimetype.startsWith("image/"))) {
+      const img = files.find(f => f.mimetype.startsWith("image/"));
+      const base64 = img.buffer.toString("base64");
 
-    if (files.length > 0) {
-      const hasImage = files.some(file => file.mimetype.startsWith('image/'));
-      if (hasImage) {
-        const imageFile = files.find(file => file.mimetype.startsWith('image/'));
-        const base64Image = imageFile.buffer.toString('base64');
-        const imageUrl = `data:${imageFile.mimetype};base64,${base64Image}`;
-
-        const messages = [
+      input = [{
+        role: "user",
+        content: [
+          { type: "text", text: message || "Describe this image" },
           {
-            role: 'user',
-            content: [
-              { type: 'text', text: userMessage || 'Describe this image' },
-              { type: 'image_url', image_url: { url: imageUrl } },
-            ],
+            type: "image_url",
+            image_url: { url: `data:${img.mimetype};base64,${base64}` },
           },
-        ];
+        ],
+      }];
+    }
 
-        const stream = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
-          messages,
-          max_tokens: 300,
-          stream: true,
-        });
-
-        let fullResponse = '';
-        for await (const chunk of stream) {
-          const delta = chunk.choices[0].delta.content;
-          if (delta) {
-            res.write(`data: ${delta}\n\n`);
-            fullResponse += delta;
-            responseChunks.push(delta);
-          }
-        }
-        res.write(`data: [END]\n\n`);
-        res.end();
-
-        // Add messages to the session’s thread for conversation history
-        await openai.beta.threads.messages.create(threadId, {
-          role: 'user',
-          content: userMessage || 'Image uploaded',
-        });
-        await openai.beta.threads.messages.create(threadId, {
-          role: 'assistant',
-          content: fullResponse,
-        });
-
-        cache.set(cacheKey, responseChunks);
-      } else {
-        let messageOptions = { role: 'user', content: userMessage || 'File uploaded' };
-        const uploadedFile = await openai.files.create({
-          file: files[0].buffer,
-          purpose: 'assistants',
-        });
-        messageOptions.file_ids = [uploadedFile.id];
-        await openai.beta.threads.messages.create(threadId, messageOptions);
-
-        const stream = await openai.beta.threads.runs.create(threadId, {
-          assistant_id: ASSISTANT_ID,
-          stream: true,
-        });
-
-        for await (const event of stream) {
-          if (event.event === 'thread.message.delta') {
-            const delta = event.data.delta.content[0].text.value;
-            res.write(`data: ${delta}\n\n`);
-            responseChunks.push(delta);
-          }
-        }
-        res.write(`data: [END]\n\n`);
-        res.end();
-
-        cache.set(cacheKey, responseChunks);
-      }
-    } else {
-      await openai.beta.threads.messages.create(threadId, {
-        role: 'user',
-        content: userMessage,
+    /* ===== File ===== */
+    else if (files.length > 0) {
+      const uploaded = await openai.files.create({
+        file: files[0].buffer,
+        purpose: "responses",
       });
 
-      const stream = await openai.beta.threads.runs.create(threadId, {
-        assistant_id: ASSISTANT_ID,
-        stream: true,
-      });
-
-      for await (const event of stream) {
-        if (event.event === 'thread.message.delta') {
-          const delta = event.data.delta.content[0].text.value;
-          res.write(`data: ${delta}\n\n`);
-          responseChunks.push(delta);
-        }
-      }
-      res.write(`data: [END]\n\n`);
-      res.end();
-
-      cache.set(cacheKey, responseChunks);
-    }
-  } catch (error) {
-    console.error(`Error in /chat: ${error.message}`);
-    res.write(`data: Error: ${error.message}\n\n`);
-    res.write(`data: [END]\n\n`);
-    res.end();
-  }
-});
-
-// Source extraction endpoint with temporary threads and caching
-app.post('/extract-sources', async (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-  });
-
-  try {
-    const message = req.body.message || '';
-    const cacheKey = `extract-sources_${message}`;
-
-    // Check cache first
-    const cachedResponse = cache.get(cacheKey);
-    if (cachedResponse) {
-      console.log(`Cache hit for key: ${cacheKey}`);
-      for (const source of cachedResponse) {
-        res.write(`data: ${source}\n\n`);
-      }
-      res.write(`data: [END]\n\n`);
-      res.end();
-      return;
+      input = [{
+        role: "user",
+        content: [
+          { type: "text", text: message || "Analyze this file" },
+          {
+            type: "input_file",
+            file: { id: uploaded.id, filename: files[0].originalname },
+          },
+        ],
+      }];
     }
 
-    if (!message) {
-      res.write(`data: Error: No message provided for source extraction\n\n`);
-      res.write(`data: [END]\n\n`);
-      res.end();
-      return;
+    /* ===== Text ===== */
+    else {
+      input = [{
+        role: "user",
+        content: [{ type: "text", text: message }],
+      }];
     }
 
-    // Create a temporary thread for this request
-    const tempThread = await openai.beta.threads.create();
-    await openai.beta.threads.messages.create(tempThread.id, {
-      role: 'user',
-      content: `Extract all Quran verses and Hadith references from the following text. Return ONLY the complete references in the format: "Quran X:Y" for Quran references (where X is the Surah number and Y is the verse number or range, e.g., "Quran 1:1" or "Quran 2:255-256"), and "Hadith [Collection] X:Y" for Hadith references (e.g., "Hadith Bukhari 1:100"). For named Surahs (e.g., "Surah Al-Fatihah"), convert them to their numerical form (e.g., "Quran 1"). Output each reference on a new line. If no references are found, return an empty response with no text. Examples of references to extract: "Surah Al-Fatihah (The Opening)", "Surah 2", "Quran 67:1", "Hadith Bukhari 1:100". Text: ${message}`,
+    await streamResponse({
+      res,
+      cacheKey,
+      payload: {
+        model: "gpt-5.2",
+        input,
+        conversation,
+      },
     });
 
-    const run = await openai.beta.threads.runs.create(tempThread.id, { assistant_id: ASSISTANT_ID });
-
-    let timeout = 30;
-    const startTime = Date.now();
-    let assistantResponse = '';
-
-    while (true) {
-      const runStatus = await openai.beta.threads.runs.retrieve(tempThread.id, run.id);
-      if (runStatus.status === 'completed') {
-        const messages = await openai.beta.threads.messages.list(tempThread.id);
-        assistantResponse = messages.data
-          .filter(msg => msg.role === 'assistant' && msg.run_id === run.id)
-          .sort((a, b) => b.created_at - a.created_at)[0]
-          .content[0].text.value;
-        break;
-      }
-      if (runStatus.status === 'failed' || runStatus.status === 'cancelled') {
-        throw new Error(`Run ${runStatus.status}`);
-      }
-      if ((Date.now() - startTime) / 1000 > timeout) {
-        throw new Error('Request timed out');
-      }
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    const sources = assistantResponse.trim().split('\n').filter(line =>
-      line.match(/^Quran \d+:\d+(?:-\d+)?$/) || 
-      line.match(/^Hadith [A-Za-z]+ \d+:\d+$/)
-    );
-
-    for (let source of sources) {
-      res.write(`data: ${source.trim()}\n\n`);
-    }
-    res.write(`data: [END]\n\n`);
-    res.end();
-
-    cache.set(cacheKey, sources);
-  } catch (error) {
-    console.error(`Error in /extract-sources: ${error.message}`);
-    res.write(`data: Error: ${error.message}\n\n`);
+  } catch (err) {
+    console.error(err);
+    res.write(`data: Error: ${err.message}\n\n`);
     res.write(`data: [END]\n\n`);
     res.end();
   }
 });
 
-// Health check endpoint (unchanged)
-app.get('/health', async (req, res) => {
+/* ===========================
+   Health Check
+=========================== */
+app.get("/health", async (req, res) => {
   try {
-    const assistant = await openai.beta.assistants.retrieve(ASSISTANT_ID);
+    const r = await openai.responses.create({
+      model: "gpt-5.2",
+      input: [{
+        role: "user",
+        content: [{ type: "text", text: "Say ok" }],
+      }],
+    });
+
     res.json({
-      status: 'healthy',
-      assistant_id: ASSISTANT_ID,
-      assistant_name: assistant.name,
-      assistant_model: assistant.model,
-      tools_enabled: assistant.tools.map(tool => tool.type),
-      features: {
-        image_analysis: true,
-        file_upload: true,
-        cache_enabled: true,
-      }
+      ok: true,
+      model: "gpt-5.2",
+      output: r.output_text,
     });
-  } catch (error) {
-    res.status(500).json({
-      status: 'unhealthy',
-      error: `Failed to verify assistant: ${error.message}`
-    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-  console.log(`Using assistant ID: ${ASSISTANT_ID}`);
+/* ===========================
+   Start Server
+=========================== */
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
+
